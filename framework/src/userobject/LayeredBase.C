@@ -47,9 +47,19 @@ LayeredBase::LayeredBase(const std::string & name, InputParameters parameters) :
   MeshTools::BoundingBox bounding_box = MeshTools::bounding_box(_layered_base_subproblem.mesh());
   _layer_values.resize(_num_layers);
   _layer_has_value.resize(_num_layers);
+  _layer_centers.resize(_num_layers);
 
-  _direction_min = bounding_box.min()(_direction);
-  _direction_max = bounding_box.max()(_direction);
+  _direction_min = bounding_box.min();
+  _direction_max = bounding_box.max();
+
+  // Calculate the layer centers
+  std::vector<Real> range(LIBMESH_DIM);
+  for (unsigned int dim=0; dim<LIBMESH_DIM; ++dim)
+    range[dim] = _direction_max(dim) - _direction_min(dim);
+
+  for (unsigned int i=0; i<_num_layers; ++i)
+    for (unsigned int dim=0; dim<LIBMESH_DIM; ++dim)
+      _layer_centers[i](dim) = _direction_min(dim) + range[dim]/_num_layers*i + range[dim]/_num_layers/2;
 }
 
 Real
@@ -101,8 +111,8 @@ LayeredBase::integralValue(Point p) const
       if (higher_layer == -1) // Didn't find a higher layer
         return _layer_values[lower_layer];
 
-      Real layer_length = (_direction_max-_direction_min)/_num_layers;
-      Real lower_coor = _direction_min;
+      Real layer_length = (_direction_max(_direction)-_direction_min(_direction))/_num_layers;
+      Real lower_coor = _direction_min(_direction);
       Real lower_value = 0;
       if (lower_layer != -1)
       {
@@ -171,6 +181,18 @@ LayeredBase::getLayerValue(unsigned int layer) const
   return _layer_values[layer];
 }
 
+const std::vector<Real> &
+LayeredBase::getLayerValues() const
+{
+  return _layer_values;
+}
+
+const std::vector<Point> &
+LayeredBase::getLayerCenters() const
+{
+  return _layer_centers;
+}
+
 void
 LayeredBase::initialize()
 {
@@ -202,10 +224,10 @@ LayeredBase::getLayer(Point p) const
 {
   Real direction_x = p(_direction);
 
-  if (direction_x < _direction_min)
+  if (direction_x < _direction_min(_direction))
     return 0;
 
-  unsigned int layer = std::floor(((direction_x - _direction_min) / (_direction_max - _direction_min)) * (Real)_num_layers);
+  unsigned int layer = std::floor(((direction_x - _direction_min(_direction)) / (_direction_max(_direction) - _direction_min(_direction))) * (Real)_num_layers);
 
   if (layer >= _num_layers)
     layer = _num_layers-1;

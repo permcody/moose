@@ -49,12 +49,19 @@ public:
    */
   virtual Real getLayerValue(unsigned int layer) const;
 
+  virtual const std::vector<Real> & getLayerValues() const;
+
+  virtual const std::vector<Point> & getLayerCenters() const;
+
   /**
    * Helper function to return the layer the point lies in.
    * @param p The point.
    * @return The layer the Point is found in.
    */
   virtual unsigned int getLayer(Point p) const;
+
+  // Return the number of layers in this object
+  unsigned int num_layers() const { return _num_layers; }
 
   virtual void initialize();
   virtual void finalize();
@@ -95,8 +102,8 @@ protected:
   /// How many layers both above and below the found layer will be used in the average
   unsigned int _average_radius;
 
-  Real _direction_min;
-  Real _direction_max;
+  Point _direction_min;
+  Point _direction_max;
 
 private:
   /// Value of the integral for each layer
@@ -104,6 +111,9 @@ private:
 
   /// Whether or not each layer has had any value summed into it
   std::vector<bool> _layer_has_value;
+
+  /// The center values of the layers
+  std::vector<Point> _layer_centers;
 
   /// Subproblem for the child object
   SubProblem & _layered_base_subproblem;
