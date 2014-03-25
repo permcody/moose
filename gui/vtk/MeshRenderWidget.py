@@ -7,6 +7,7 @@ try:
 except ImportError:
     try:
         from PySide import QtCore, QtGui
+        QtCore.QString = str
     except ImportError:
         raise ImportError("Cannot load either PyQt or PySide")
 
@@ -54,8 +55,8 @@ class MeshRenderWidget(QtGui.QWidget):
 
     self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
 
-    self.vtkwidget.Initialize()
-    self.vtkwidget.Start()
+    self.show()
+    self.interactor.Initialize()
 
     self.controls_layout = QtGui.QHBoxLayout()
 

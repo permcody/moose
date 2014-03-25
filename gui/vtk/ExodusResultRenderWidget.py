@@ -7,6 +7,7 @@ try:
 except ImportError:
     try:
         from PySide import QtCore, QtGui
+        QtCore.QString = str
     except ImportError:
         raise ImportError("Cannot load either PyQt or PySide")
 
@@ -99,9 +100,12 @@ class ExodusResultRenderWidget(QtGui.QWidget):
     self.vtkwidget.show()
 
     self.vtkwidget.GetRenderWindow().AddRenderer(self.renderer)
-    self.vtkwidget.GetRenderWindow().GetInteractor().SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-    self.vtkwidget.Initialize()
-    self.vtkwidget.Start()
+    self.interactor = self.vtkwidget.GetRenderWindow().GetInteractor()
+
+    self.interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+
+    self.show()
+    self.interactor.Initialize()
 
     self.first = True
 
@@ -855,6 +859,9 @@ class ExodusResultRenderWidget(QtGui.QWidget):
   def _clickedOpen(self):
     file_name = QtGui.QFileDialog.getOpenFileName(self, "Open Result", "~/", "Input Files (*.e)")
 
+    if isinstance(file_name, QtCore.QString):
+        file_name = str(file_name)
+
     if not isinstance(file_name, basestring): # This happens when using pyside
         file_name = file_name[0]
 
@@ -872,6 +879,9 @@ class ExodusResultRenderWidget(QtGui.QWidget):
 
   def _saveView(self):
     file_name = QtGui.QFileDialog.getSaveFileName(self, "Image File Name", "~/", "Image Files (*.png)")
+
+    if isinstance(file_name, QtCore.QString):
+        file_name = str(file_name)
 
     if not isinstance(file_name, basestring): # This happens when using pyside
         file_name = file_name[0]

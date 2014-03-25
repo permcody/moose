@@ -7,6 +7,7 @@ try:
 except ImportError:
     try:
         from PySide import QtCore, QtGui
+        QtCore.QString = str
     except ImportError:
         raise ImportError("Cannot load either PyQt or PySide")
 
@@ -57,6 +58,9 @@ class FileOpenWidget(QtGui.QPushButton):
   def clicked(self):
     file_name = QtGui.QFileDialog.getOpenFileName(self, "Find Mesh File", os.getcwd(), "File (*)")
 
+    if isinstance(file_name, QtCore.QString):
+        file_name = str(file_name)
+
     if not isinstance(file_name, basestring): # This happens when using pyside
         file_name = file_name[0]
 
@@ -81,6 +85,9 @@ class FileNoExtensionOpenWidget(QtGui.QPushButton):
   def clicked(self):
     file_name = QtGui.QFileDialog.getOpenFileName(self, "Find Mesh File", os.getcwd(), "File (*)")
 
+    if isinstance(file_name, QtCore.QString):
+        file_name = str(file_name)
+
     if not isinstance(file_name, basestring): # This happens when using pyside
         file_name = file_name[0]
 
@@ -96,7 +103,7 @@ class FileNoExtensionOpenWidget(QtGui.QPushButton):
 
 
 class ParamTable:
-  def __init__(self, main_data, action_syntax, single_options, incoming_data, incoming_param_comments, incoming_comment, main_layout, parent_class, already_has_parent_params, type_options, global_params):
+  def __init__(self, main_data, action_syntax, single_options, incoming_data, incoming_param_comments, incoming_comment, main_layout, parent_class, already_has_parent_params, type_options, global_params, this_path_is_hard):
     self.main_data = main_data
     self.action_syntax = action_syntax
     self.type_options = type_options
@@ -110,7 +117,8 @@ class ParamTable:
     if incoming_comment:
       self.comment = incoming_comment
 
-    if main_data and 'subblocks' in main_data:
+
+    if not this_path_is_hard and main_data and 'subblocks' in main_data:
       self.subblocks = main_data['subblocks']
     else:
       self.subblocks = None

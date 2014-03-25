@@ -9,6 +9,7 @@ try:
 except ImportError:
     try:
         from PySide import QtCore, QtGui
+        QtCore.QString = str
     except ImportError:
         raise ImportError("Cannot load either PyQt or PySide")
 
@@ -115,6 +116,9 @@ class MPLPlotter(QtGui.QWidget):
 
     def savePlot(self):
         file_name = QtGui.QFileDialog.getSaveFileName(self, 'Save file', self.plotTitle, "Images (*.pdf)")
+
+        if isinstance(file_name, QtCore.QString):
+            file_name = str(file_name)
 
         if not isinstance(file_name, basestring): # This happens when using pyside
             file_name = file_name[0]
