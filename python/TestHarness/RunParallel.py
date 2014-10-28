@@ -8,7 +8,7 @@ from collections import deque
 from Tester import Tester
 from signal import SIGTERM
 
-import os, sys
+import os, sys, pickle
 
 ## This class provides an interface to run commands in parallel
 #
@@ -82,7 +82,7 @@ class RunParallel:
         command = "echo"
 
       f = TemporaryFile()
-      p = Popen([command],stdout=f,stderr=f,close_fds=False, shell=True)
+      p = Popen([command],stdout=f,stderr=f,close_fds=True, shell=True)
     except:
       print "Error in launching a new task"
       raise
@@ -238,6 +238,19 @@ class RunParallel:
   # Add a skipped job to the list
   def jobSkipped(self, name):
     self.skipped_jobs.add(name)
+
+  def writeState(self):
+    new_list = []
+    for tuple in self.jobs:
+      (p, command, tester, start_time, f) = tuple
+      new_list.append([p, command, tester, start_time])
+
+      print p.pid
+
+    f1 = open(os.path.join(os.getcwd(), "current_jobs"), "w")
+    pickle.dump(new_list, f1)
+    f1.close()
+
 
 ## Static logging string for debugging
 LOG = []

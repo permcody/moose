@@ -1,5 +1,5 @@
 import os, sys, re, inspect, types, errno, pprint, subprocess, io, shutil, time, copy
-import path_tool
+import path_tool, pickle
 
 path_tool.activate_module('FactorySystem')
 path_tool.activate_module('argparse')
@@ -189,14 +189,18 @@ class TestHarness:
               os.chdir(saved_cwd)
               sys.path.pop()
 
-    self.runner.join()
+    # TODO: Don't wait when we are running with --pbs
+#    self.runner.join()
     # Wait for all tests to finish
     if self.options.pbs and self.options.processingPBS == False:
       print '\n< checking batch status >\n'
       self.options.processingPBS = True
       self.processPBSResults()
 
-    self.cleanup()
+    # TODO: Might still cleanup even with --pbs
+#    self.cleanup()
+
+    self.runner.writeState()
 
     if self.num_failed:
       self.error_code = self.error_code | 0x10
@@ -372,6 +376,26 @@ class TestHarness:
   def processPBSResults(self):
     # If batch file exists, check the contents for pending tests.
     if os.path.exists(self.options.pbs):
+      f = open(self.options.pbs, "r")
+
+
+      foo = pickle.load(f)
+      for tuple in foo:
+        (p, command, tester, start_time) = tuple
+
+        try:
+          if os.kill(p.pid, 0) is None:
+            print "Process Running ", p.pid
+          else:
+            print "Unknown"
+        except:
+          print "Process Terminated ", p.pid
+
+      sys.exit(0)
+
+
+
+
       # Build a list of launched jobs
       batch_file = open(self.options.pbs)
       batch_list = [y.split(':') for y in [x for x in batch_file.read().split('\n')]]
