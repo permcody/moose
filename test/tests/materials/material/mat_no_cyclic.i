@@ -1,7 +1,7 @@
-# This test verifies that we DO get a cyclic dependency error when
+# This test verifies that we DON'T get a cyclic dependency error when
 # declaring a set of materials the couple properties like this:
 #
-# some_prop -> some_other_prop
+# some_prop -> some_other_prop_old   # Note the coupling to the older property here
 # some_other_prop -> some_prop
 #
 
@@ -62,6 +62,7 @@
     block = 0
     mat_prop = 'some_prop'
     coupled_mat_prop = 'some_other_prop'
+    use_old_prop = true
   [../]
 
   [./mat1]
@@ -69,6 +70,7 @@
     block = 0
     mat_prop = 'some_other_prop'
     coupled_mat_prop = 'some_prop'
+    use_old_prop = false
   [../]
 []
 
