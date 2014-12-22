@@ -23,9 +23,10 @@ class RunScheduler(MooseObject):
   @staticmethod
   def validParams():
     params = MooseObject.validParams()
-    params.addRequiredParam('test_harness',         "TestHarness instance");
+    params.addRequiredParam('test_harness', "TestHarness instance");
     params.addParam('max_processes',     1, "The maximum number of jobs to run concurrently");
     params.addParam('average_load',     64, "The load average not to exceed");
+    params.addParam('mode',       "NORMAL", "The scheduler mode: NORMAL, PBS, PBS_EMULATOR");
     return params
 
   ## Return this return code if the process must be killed because of timeout
