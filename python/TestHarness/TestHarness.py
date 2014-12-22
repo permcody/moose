@@ -8,7 +8,7 @@ from ParseGetPot import ParseGetPot
 from socket import gethostname
 #from options import *
 from util import *
-from RunParallel import RunParallel
+from RunScheduler import RunScheduler
 from CSVDiffer import CSVDiffer
 from XMLDiffer import XMLDiffer
 from Tester import Tester
@@ -189,7 +189,7 @@ class TestHarness:
                   if should_run:
                     command = tester.getCommand(self.options)
                     # This method spawns another process and allows this loop to continue looking for tests
-                    # RunParallel will call self.testOutputAndFinish when the test has completed running
+                    # RunScheduler will call self.testOutputAndFinish when the test has completed running
                     # This method will block when the maximum allowed parallel processes are running
                     self.runner.run(tester, command)
                   else: # This job is skipped - notify the runner
@@ -625,8 +625,13 @@ class TestHarness:
       self.writeState(self.executable)
 
   def initialize(self, argv, app_name):
+    params = RunScheduler.validParams()
+    params['test_harness'] = self
+    params['max_processes'] = self.options.jobs
+    params['average_load'] = self.options.load
+
     # Initialize the parallel runner with how many tests to run in parallel
-    self.runner = RunParallel(self, self.options.jobs, self.options.load)
+    self.runner = RunScheduler('runner', params)
 
     ## Save executable-under-test name to self.executable
     self.executable = os.getcwd() + '/' + app_name + '-' + self.options.method

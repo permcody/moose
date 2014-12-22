@@ -1,12 +1,14 @@
 from subprocess import *
 from time import sleep
 from timeit import default_timer as clock
+from MooseObject import MooseObject
 
 from tempfile import TemporaryFile
 #from Queue import Queue
 from collections import deque
 from Tester import Tester
 from signal import SIGTERM
+
 
 import os, sys
 
@@ -16,24 +18,34 @@ import os, sys
 # options. When the test is finished running it will call harness.testOutputAndFinish
 # to complete the test. Be sure to call join() to make sure all the tests are finished.
 #
-class RunParallel:
+class RunScheduler(MooseObject):
+
+  @staticmethod
+  def validParams():
+    params = MooseObject.validParams()
+    params.addRequiredParam('test_harness',         "TestHarness instance");
+    params.addParam('max_processes',     1, "The maximum number of jobs to run concurrently");
+    params.addParam('average_load',     64, "The load average not to exceed");
+    return params
 
   ## Return this return code if the process must be killed because of timeout
   TIMEOUT = -999999
 
-  def __init__(self, harness, max_processes=1, average_load=64.0):
+  def __init__(self, name, params):
+    MooseObject.__init__(self, name, params)
+
     ## The test harness to run callbacks on
-    self.harness = harness
+    self.harness = self._pars['test_harness']
 
     # Retrieve and store the TestHarness options for use in this object
-    self.options = harness.getOptions()
+    self.options = self.harness.getOptions()
 
     ## List of currently running jobs as (Popen instance, command, test, time when expires) tuples
     # None means no job is running in this slot
-    self.jobs = [None] * max_processes
+    self.jobs = [None] * self._pars['max_processes']
 
     # Requested average load level to stay below
-    self.average_load = average_load
+    self.average_load = self._pars['average_load']
 
     # queue for jobs needing a prereq
     self.queue = deque()
@@ -122,7 +134,7 @@ class RunParallel:
       os.kill(p.pid, SIGTERM)        # Python 2.4 compatibility
       #p.terminate()                 # Python 2.6+
 
-      if not self.harness.testOutputAndFinish(tester, RunParallel.TIMEOUT, output, time, clock()):
+      if not self.harness.testOutputAndFinish(tester, RunScheduler.TIMEOUT, output, time, clock()):
         did_pass = False
     else:
       output = 'Working Directory: ' + tester.specs['test_dir'] + '\nRunning command: ' + command + '\n'

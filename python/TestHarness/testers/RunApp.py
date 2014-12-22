@@ -1,6 +1,6 @@
 import re, os, sys
 from Tester import Tester
-from RunParallel import RunParallel # For TIMEOUT value
+from RunScheduler import RunScheduler # For TIMEOUT value
 
 class RunApp(Tester):
 
@@ -201,7 +201,7 @@ class RunApp(Tester):
       # in the derived class.
       if options.valgrind_mode == '' and not specs.isValid('expect_err') and len( filter( lambda x: x in output, specs['errors'] ) ) > 0:
         reason = 'ERRMSG'
-      elif retcode == RunParallel.TIMEOUT:
+      elif retcode == RunScheduler.TIMEOUT:
         reason = 'TIMEOUT'
       elif retcode == 0 and specs['should_crash'] == True:
         reason = 'NO CRASH'
