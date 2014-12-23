@@ -84,6 +84,11 @@ class Tester(MooseObject):
     return
 
 
+  # Return the parameters for this tester instance
+  def getParameters(self):
+    return self.specs
+
+
   # This is the base level runnable check common to all Testers.  DO NOT override
   # this method in any of your derived classes.  Instead see "checkRunnable"
   def checkRunnableBase(self, options, checks):
