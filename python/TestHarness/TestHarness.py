@@ -3,6 +3,7 @@ import path_tool
 
 path_tool.activate_module('FactorySystem')
 path_tool.activate_module('argparse')
+path_tool.activate_module('ClusterLauncher')
 
 from ParseGetPot import ParseGetPot
 from socket import gethostname
