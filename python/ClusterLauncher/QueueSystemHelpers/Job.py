@@ -1,4 +1,6 @@
 from InputParameters import InputParameters
+from MooseObject import MooseObject
+
 import os, sys, shutil
 
 # Get the real path of cluster_launcher
@@ -24,15 +26,16 @@ import path_tool
 path_tool.activate_module('TestHarness')
 path_tool.activate_module('FactorySystem')
 
-class Job(object):
+class Job(MooseObject):
+
+  @staticmethod
   def validParams():
     params = InputParameters()
     params.addRequiredParam('type', "The type of test of Tester to create for this test.")
-    params.addParam('template_script', FRAMEWORK_DIR + '/scripts/ClusterLauncher/pbs_submit.sh', "The template job script to use.")
+    params.addParam('template_script', MOOSE_DIR + '/python/ClusterLauncher/QueueSystemHelpers/pbs_submit.sh', "The template job script to use.")
     params.addParam('job_name', 'The name of the job')
     params.addParam('test_name', 'The name of the test')
     return params
-  validParams = staticmethod(validParams)
 
   def __init__(self, name, params):
     self.specs = params

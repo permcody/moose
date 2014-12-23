@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, re, shutil
+import os, sys, re, shutil, inspect
 from optparse import OptionParser, OptionGroup, Values
 
 # Get the real path of cluster_launcher
@@ -24,14 +24,12 @@ sys.path.append(os.path.join(MOOSE_DIR, 'python'))
 import path_tool
 path_tool.activate_module('TestHarness')
 path_tool.activate_module('FactorySystem')
-sys.path.append(os.path.join(FRAMEWORK_DIR, 'scripts', 'ClusterLauncher'))
-from PBSJob import PBSJob
-
-sys.path.append(os.path.join(MOOSE_DIR, 'python', 'FactorySystem'))
+path_tool.activate_module('ClusterLauncher')
 
 import ParseGetPot
 from InputParameters import InputParameters
 from Factory import Factory
+from Job import Job
 
 # Default file to read if only a directory is supplied
 job_list = 'job_list'
@@ -48,6 +46,7 @@ def getNextDirName(file_name, files):
 class ClusterLauncher:
   def __init__(self):
     self.factory = Factory()
+    self.factory.loadPlugins([os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))], 'QueueSystemHelpers', Job)
 
   def parseJobsFile(self, template_dir, job_file):
     jobs = []
@@ -161,7 +160,6 @@ def main():
   (options, location) = parser.parse_args()
 
   cluster_launcher = ClusterLauncher()
-  cluster_launcher.registerJobType(PBSJob, 'PBSJob')
 
   if options.dump:
     cluster_launcher.printDump()
