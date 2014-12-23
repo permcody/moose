@@ -167,36 +167,36 @@ class TestHarness:
                 testers = self.appendRecoverableTests(testers)
 
 
-              # Handle PBS tests.cluster file
-              if self.options.pbs:
-                (tester, command) = self.createClusterLauncher(dirpath, testers)
-                if command is not None:
+#              # Handle PBS tests.cluster file
+#              if self.options.pbs:
+#                (tester, command) = self.createClusterLauncher(dirpath, testers)
+#                if command is not None:
+#                  self.runner.run(tester, command)
+#              else:
+              # Go through the Testers and run them
+              for tester in testers:
+                # Double the alloted time for tests when running with the valgrind option
+                tester.setValgrindMode(self.options.valgrind_mode)
+
+                # When running in valgrind mode, we end up with a ton of output for each failed
+                # test.  Therefore, we limit the number of fails...
+                if self.options.valgrind_mode and self.num_failed > self.options.valgrind_max_fails:
+                  (should_run, reason) = (False, 'Max Fails Exceeded')
+                elif self.num_failed > self.options.max_fails:
+                  (should_run, reason) = (False, 'Max Fails Exceeded')
+                else:
+                  (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
+
+                if should_run:
+                  command = tester.getCommand(self.options)
+                  # This method spawns another process and allows this loop to continue looking for tests
+                  # RunScheduler will call self.testOutputAndFinish when the test has completed running
+                  # This method will block when the maximum allowed parallel processes are running
                   self.runner.run(tester, command)
-              else:
-                # Go through the Testers and run them
-                for tester in testers:
-                  # Double the alloted time for tests when running with the valgrind option
-                  tester.setValgrindMode(self.options.valgrind_mode)
-
-                  # When running in valgrind mode, we end up with a ton of output for each failed
-                  # test.  Therefore, we limit the number of fails...
-                  if self.options.valgrind_mode and self.num_failed > self.options.valgrind_max_fails:
-                    (should_run, reason) = (False, 'Max Fails Exceeded')
-                  elif self.num_failed > self.options.max_fails:
-                    (should_run, reason) = (False, 'Max Fails Exceeded')
-                  else:
-                    (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
-
-                  if should_run:
-                    command = tester.getCommand(self.options)
-                    # This method spawns another process and allows this loop to continue looking for tests
-                    # RunScheduler will call self.testOutputAndFinish when the test has completed running
-                    # This method will block when the maximum allowed parallel processes are running
-                    self.runner.run(tester, command)
-                  else: # This job is skipped - notify the runner
-                    if (reason != ''):
-                      self.handleTestResult(tester.parameters(), '', reason)
-                    self.runner.jobSkipped(tester.parameters()['test_name'])
+                else: # This job is skipped - notify the runner
+                  if (reason != ''):
+                    self.handleTestResult(tester.parameters(), '', reason)
+                  self.runner.jobSkipped(tester.parameters()['test_name'])
 
               os.chdir(saved_cwd)
               sys.path.pop()
@@ -214,39 +214,6 @@ class TestHarness:
       self.error_code = self.error_code | 0x10
 
     sys.exit(self.error_code)
-
-
-  def createClusterLauncher(self, dirpath, testers):
-    self.options.test_serial_number = 0
-    command = None
-    tester = None
-    # Create the tests.cluster input file
-    # Loop through each tester and create a job
-    for tester in testers:
-      (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
-      if should_run:
-        if self.options.cluster_handle == None:
-          self.options.cluster_handle = open(dirpath + '/' + self.options.pbs + '.cluster', 'w')
-        self.options.cluster_handle.write('[Jobs]\n')
-        # This returns the command to run as well as builds the parameters of the test
-        # The resulting command once this loop has completed is sufficient to launch
-        # all previous jobs
-        command = tester.getCommand(self.options)
-        self.options.cluster_handle.write('[]\n')
-        self.options.test_serial_number += 1
-      else: # This job is skipped - notify the runner
-        if (reason != ''):
-          self.handleTestResult(tester.parameters(), '', reason)
-          self.runner.jobSkipped(tester.parameters()['test_name'])
-
-    # Close the tests.cluster file
-    if self.options.cluster_handle is not None:
-      self.options.cluster_handle.close()
-      self.options.cluster_handle = None
-
-    # Return the final tester/command (sufficient to run all tests)
-    return (tester, command)
-
 
   def prunePath(self, filename):
     test_dir = os.path.abspath(os.path.dirname(filename))
@@ -630,6 +597,11 @@ class TestHarness:
     params['test_harness'] = self
     params['max_processes'] = self.options.jobs
     params['average_load'] = self.options.load
+    if self.options.pbs:
+      params['mode'] = 'PBS'
+      params['batch_number'] = self.options.pbs
+    else:
+      params['mode'] = 'NORMAL'
 
     # Initialize the parallel runner with how many tests to run in parallel
     self.runner = RunScheduler('runner', params)
@@ -787,6 +759,9 @@ class TestHarness:
 
   def getOptions(self):
     return self.options
+
+  def getMooseDir(self):
+    return self.moose_dir
 
 #################################################################################################################################
 # The TestTimer TestHarness
