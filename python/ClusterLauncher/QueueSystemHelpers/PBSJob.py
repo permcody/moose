@@ -4,6 +4,8 @@ from Job import Job
 import os, sys, subprocess, shutil
 
 class PBSJob(Job):
+
+  @staticmethod
   def validParams():
     params = Job.validParams()
 
@@ -12,6 +14,7 @@ class PBSJob(Job):
     params.addParam('mpi_procs', "The number of MPI processes per chunk.")
     params.addParam('total_mpi_procs', "The total number of MPI processes to use divided evenly among chunks.")
 
+    params.addParam('template_script', os.path.join('QueueSystemHelpers', 'pbs_submit.sh'), "The template job script to use.")
     params.addParam('place', 'scatter:excl', "The PBS job placement scheme to use.")
     params.addParam('walltime', '4:00:00', "The requested walltime for this job.")
     params.addParam('no_copy', "A list of files specifically not to copy")
@@ -32,35 +35,42 @@ class PBSJob(Job):
     params.addRequiredParam('input_file', "The input file name.")
 
     return params
-  validParams = staticmethod(validParams)
 
   def __init__(self, name, params):
     Job.__init__(self, name, params)
 
+    # Prepend the MOOSE directory and python stub to the front of the template script path
+    self.params['template_script'] = os.path.join(params['MOOSE_DIR'], 'python', 'ClusterLauncher', params['template_script'])
+
   # Called from the current directory to copy files (usually from the parent)
   def copyFiles(self, job_file):
-    params = self.specs
+    params = self.params
 
     # Copy files (unless they are listed in "no_copy"
-    for file in os.listdir('../'):
-      if os.path.isfile('../' + file) and file != job_file and (not params.isValid('no_copy') or file not in params['no_copy']):
-         shutil.copy('../' + file, '.')
+    for file in os.listdir('..'):
+      if os.path.isfile(os.path.join('..', file)) and file != job_file and (not params.isValid('no_copy') or file not in params['no_copy']):
+         shutil.copy(os.path.join('..', file), '.')
 
     # Copy directories
     if params.isValid('copy_files'):
       for file in params['copy_files'].split():
         print file
-        if os.path.isfile('../' + file):
-          shutil.copy('../' + file, '.')
-        elif os.path.isdir('../' + file):
-          shutil.copytree('../' + file, file)
+        if os.path.isfile(os.path.join('..', file)):
+          shutil.copy(os.path.join('..', file), '.')
+        elif os.path.isdir(os.path.join('..', file)):
+          shutil.copytree(os.path.join('..', file), file)
 
-  def prepareJobScript(self):
-    f = open(self.specs['template_script'], 'r')
+  def prepareJobScript(self, create_separate_dir):
+    f = open(self.params['template_script'], 'r')
     content = f.read()
     f.close()
 
-    params = self.specs
+    if create_separate_dir:
+      final_template_script = os.path.split(self.params['template_script'])[1]
+    else:
+      final_template_script = self.params['job_name'] + '.sh'
+
+    params = self.params
     # Error check
     if params.isValid('mpi_procs') and params.isValid('total_mpi_procs'):
       print "ERROR: 'mpi_procs' and 'total_mpi_procs' are exclusive.  Only specify one!"
@@ -93,7 +103,7 @@ class PBSJob(Job):
     params.addStringSubParam('soft_link2', 'SOFT_LINK2', soft_link2, 'private')
     params.addStringSubParam('soft_link3', 'SOFT_LINK3', soft_link3, 'private')
 
-    f = open(os.path.split(params['template_script'])[1], 'w')
+    f = open(final_template_script, 'w')
 
     # Do all of the replacements for the valid parameters
     for param in params.valid_keys():
@@ -109,7 +119,9 @@ class PBSJob(Job):
     f.write(content)
     f.close()
 
-  def launch(self):
+    return final_template_script
+
+  def launch(self, script_name):
     # Finally launch the job
-    my_process = subprocess.Popen('qsub ' + os.path.split(self.specs['template_script'])[1], stdout=subprocess.PIPE, shell=True)
-    print 'JOB_NAME:', self.specs['job_name'], 'JOB_ID:', my_process.communicate()[0].split('.')[0], 'TEST_NAME:', self.specs['test_name']
+    my_process = subprocess.Popen('qsub ' + script_name, stdout=subprocess.PIPE, shell=True)
+    print 'JOB_NAME:', self.params['job_name'], 'JOB_ID:', my_process.communicate()[0].split('.')[0], 'TEST_NAME:', self.params['test_name']

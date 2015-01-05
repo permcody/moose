@@ -10,8 +10,8 @@ else:
   pathname = os.path.abspath(pathname)
 
 # Add the utilities/python_getpot directory
-MOOSE_DIR = os.path.abspath(os.path.join(pathname, '../../'))
-FRAMEWORK_DIR = os.path.abspath(os.path.join(pathname, '../../', 'framework'))
+MOOSE_DIR = os.path.abspath(os.path.join(pathname, '..', '..'))
+FRAMEWORK_DIR = os.path.abspath(os.path.join(pathname, '..', '..', 'framework'))
 #### See if MOOSE_DIR is already in the environment instead
 if os.environ.has_key("MOOSE_DIR"):
   MOOSE_DIR = os.environ['MOOSE_DIR']
@@ -51,7 +51,7 @@ class ClusterLauncher:
   def parseJobsFile(self, template_dir, job_file):
     jobs = []
     # We expect the job list to be named "job_list"
-    filename = template_dir + job_file
+    filename = os.path.join(template_dir, job_file)
 
     try:
       data = ParseGetPot.readInputFile(filename)
@@ -109,32 +109,36 @@ class ClusterLauncher:
         jobs.append(params)
     return jobs
 
-  def createAndLaunchJob(self, template_dir, job_file, specs, options):
-    next_dir = getNextDirName(specs['job_name'], os.listdir('.'))
-    os.mkdir(template_dir + next_dir)
-
-    # Log it
-    if options.message:
-      f = open(template_dir + 'jobs.log', 'a')
-      f.write(next_dir.ljust(20) + ': ' + options.message + '\n')
-      f.close()
-
+  def createAndLaunchJob(self, template_dir, job_file, params, options):
+    next_dir = '.'
+    next_name = getNextDirName(params['job_name'], os.listdir('.'))
     saved_cwd = os.getcwd()
-    os.chdir(template_dir + next_dir)
+    if options.create_separate_dir:
+      os.mkdir(os.path.join(template_dir, next_name))
+
+      # Log it
+      if options.message:
+        f = open(os.path.join(template_dir, 'jobs.log'), 'a')
+        f.write(next_name.ljust(20) + ': ' + options.message + '\n')
+        f.close()
+
+      os.chdir(os.path.join(template_dir, next_name))
+      next_dir = next_name
 
     # Turn the remaining work over to the Job instance
     # To keep everything consistent we'll also append our serial number to our job name
-    specs['job_name'] = next_dir
-    job_instance = self.factory.create(specs['type'], specs['job_name'], specs)
+    params['job_name'] = next_name
+    params['MOOSE_DIR'] = MOOSE_DIR
+    job_instance = self.factory.create(params['type'], params['job_name'], params)
 
     # Copy files
     job_instance.copyFiles(job_file)
 
     # Prepare the Job Script
-    job_instance.prepareJobScript()
+    script_name = job_instance.prepareJobScript(options.create_separate_dir)
 
     # Launch it!
-    job_instance.launch()
+    job_instance.launch(script_name)
 
     os.chdir(saved_cwd)
 
@@ -157,6 +161,7 @@ def main():
   parser = OptionParser(usage='Usage: %prog [options] <template directory>')
   parser.add_option("--dump", action="store_true", dest="dump", default=False, help="Dump the parameters for the testers in GetPot Format")
   parser.add_option("-m", action="store", dest="message", help="A message that will be stored in a local log file that describes the job")
+  parser.add_option("-x", action="store_false", dest="create_separate_dir", default=True, help="Skip creating separate directories for each job launch")
   (options, location) = parser.parse_args()
 
   cluster_launcher = ClusterLauncher()
@@ -176,7 +181,7 @@ def main():
     file = job_list
   elif os.path.isfile(abs_location):
     (dir, file) = os.path.split(abs_location)
-  dir = dir + '/'
+#  dir = dir + '/'
 
   # Launch it
   cluster_launcher.run(dir, file, options)
