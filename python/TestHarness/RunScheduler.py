@@ -43,9 +43,9 @@ class RunScheduler(MooseObject):
     self.mode = self._pars['mode']
 
     if self.mode == 'PBS':
-      template_script = open(os.path.join(self.harness.getMooseDir(), 'python', 'TestHarness', 'pbs_template.i'), 'r')
-      self.cluster_launcher_template = template_script.read()
-      template_script.close()
+      jobs_template_script = open(os.path.join(self.harness.getMooseDir(), 'python', 'ClusterLauncher', 'QueueSystemHelpers', 'jobs.tplt'), 'r')
+      self.cluster_launcher_template = jobs_template_script.read()
+      jobs_template_script.close()
       self.test_serial_number = 0
       self.batch_number = self._pars['batch_number']
 
@@ -307,16 +307,21 @@ class RunScheduler(MooseObject):
     # Convert TEST_NAME to input tests file name (normally just 'tests')
     params['no_copy'] = self.harness.getOptions().input_file_name
 
-    # Do all of the replacements for the valid parameters
-    for param in params.valid_keys():
-      if param in params.substitute:
-        params[param] = params.substitute[param].replace(param.upper(), params[param])
-      content = content.replace('<' + param.upper() + '>', str(params[param]))
+    # For PBS Emulation we will use a different launch script
+    params['template_script'] = os.path.join(self.harness.getMooseDir(), 'python', 'ClusterLauncher', 'QueueSystemHelpers', 'pbs_test_harness.sh')
 
-    # Make sure we strip out any string substitution parameters that were not supplied
-    for param in params.substitute_keys():
-      if not params.isValid(param):
-        content = content.replace('<' + param.upper() + '>', '')
+    # Do all of the replacements for the valid parameters
+    content = params.substituteParamsInContent(content)
+
+#    for param in params.valid_keys():
+#      if param in params.substitute:
+#        params[param] = params.substitute[param].replace(param.upper(), params[param])
+#      content = content.replace('<' + param.upper() + '>', str(params[param]))
+#
+#    # Make sure we strip out any string substitution parameters that were not supplied
+#    for param in params.substitute_keys():
+#      if not params.isValid(param):
+#        content = content.replace('<' + param.upper() + '>', '')
 
     # Write the cluster_launcher input file
     file_name = os.getcwd() + '/' + self.batch_number + '.cluster'
@@ -327,17 +332,17 @@ class RunScheduler(MooseObject):
     else:
       file_handle = open(os.getcwd() + '/' + self.batch_number + '.cluster', 'w')
       file_handle.write('[Jobs]\n')
-    
+
     file_handle.write(content)
     file_handle.write('[]\n')
     file_handle.close()
-  
+
     return os.path.join(params['moose_dir'], 'framework', 'scripts', 'cluster_launcher.py') + ' ' + self.batch_number + '.cluster'
 
 
 #    file_handle.write('[Jobs]\n')
-# 
-# 
+#
+#
 #      if self.options.cluster_handle == None:
 #        self.options.cluster_handle = open(os.getcwd() + '/' + self.options.pbs + '.cluster', 'w')
 #      self.options.cluster_handle.write('[Jobs]\n')
@@ -350,12 +355,12 @@ class RunScheduler(MooseObject):
 #      if (reason != ''):
 #        self.handleTestResult(tester.parameters(), '', reason)
 #        self.runner.jobSkipped(tester.parameters()['test_name'])
-# 
+#
 #    # Close the tests.cluster file
 #    if self.options.cluster_handle is not None:
 #      self.options.cluster_handle.close()
 #      self.options.cluster_handle = None
-# 
+#
 #    # Return the final tester/command (sufficient to run all tests)
 #    return (tester, command)
 

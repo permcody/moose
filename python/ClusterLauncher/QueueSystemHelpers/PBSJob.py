@@ -14,7 +14,7 @@ class PBSJob(Job):
     params.addParam('mpi_procs', "The number of MPI processes per chunk.")
     params.addParam('total_mpi_procs', "The total number of MPI processes to use divided evenly among chunks.")
 
-    params.addParam('template_script', os.path.join('QueueSystemHelpers', 'pbs_submit.sh'), "The template job script to use.")
+    params.addParam('template_script', os.path.join('QueueSystemHelpers', 'pbs_cluster_submit.sh'), "The template job script to use.")
     params.addParam('place', 'scatter:excl', "The PBS job placement scheme to use.")
     params.addParam('walltime', '4:00:00', "The requested walltime for this job.")
     params.addParam('no_copy', "A list of files specifically not to copy")
@@ -106,15 +106,16 @@ class PBSJob(Job):
     f = open(final_template_script, 'w')
 
     # Do all of the replacements for the valid parameters
-    for param in params.valid_keys():
-      if param in params.substitute:
-        params[param] = params.substitute[param].replace(param.upper(), params[param])
-      content = content.replace('<' + param.upper() + '>', str(params[param]))
-
-    # Make sure we strip out any string substitution parameters that were not supplied
-    for param in params.substitute_keys():
-      if not params.isValid(param):
-        content = content.replace('<' + param.upper() + '>', '')
+    content = params.substituteParamsInContent(content)
+#    for param in params.valid_keys():
+#      if param in params.substitute:
+#        params[param] = params.substitute[param].replace(param.upper(), params[param])
+#      content = content.replace('<' + param.upper() + '>', str(params[param]))
+#
+#    # Make sure we strip out any string substitution parameters that were not supplied
+#    for param in params.substitute_keys():
+#      if not params.isValid(param):
+#        content = content.replace('<' + param.upper() + '>', '')
 
     f.write(content)
     f.close()

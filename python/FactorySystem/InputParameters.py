@@ -128,7 +128,6 @@ class InputParameters:
       if not self.isValid(common_key):
         self[common_key] = common[common_key]
 
-
   def printParams(self):
     for k in self.desc:
       value = ''
@@ -137,3 +136,26 @@ class InputParameters:
 
       print k.ljust(20), value
       print ' '.ljust(20), self.desc[k]
+
+
+  # This method takes a string and substitutes all parameters with matching keys inside of markup tags into the content.
+  # e.g. 'user' -> 'Alice' and 'password' -> 'qwerty'
+  # e.g. "Here is the password for <USER>: '<PASSWORD>'" -> "Here is the login for Alice: 'qwerty'"
+  def substituteParamsInContent(self, s):
+    # Do all of the replacements for the valid parameters
+    for param in self.valid_keys():
+      if param in self.substitute:
+        self.valid[param] = self.substitute[param].replace(param.upper(), self.valid[param])
+
+      if type(self.valid[param]) == list:
+        sub_string = ' '.join(self.valid[param])
+      else:
+        sub_string = str(self.valid[param])
+      s = s.replace('<' + param.upper() + '>', sub_string)
+
+    # Make sure we strip out any string substitution parameters that were not supplied
+    for param in self.substitute_keys():
+      if not self.isValid(param):
+        s = s.replace('<' + param.upper() + '>', '')
+
+    return s
