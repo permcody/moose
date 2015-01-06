@@ -337,7 +337,7 @@ class RunScheduler(MooseObject):
     file_handle.write('[]\n')
     file_handle.close()
 
-    return os.path.join(params['moose_dir'], 'framework', 'scripts', 'cluster_launcher.py') + ' ' + self.batch_number + '.cluster'
+    return os.path.join(params['moose_dir'], 'python', 'ClusterLauncher', 'cluster_launcher.py') + ' -x ' + self.batch_number + '.cluster'
 
 
 #    file_handle.write('[Jobs]\n')

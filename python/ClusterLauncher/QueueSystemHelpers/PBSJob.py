@@ -19,6 +19,7 @@ class PBSJob(Job):
     params.addParam('walltime', '4:00:00', "The requested walltime for this job.")
     params.addParam('no_copy', "A list of files specifically not to copy")
     params.addParam('copy_files', "A list of files specifically to copy")
+    params.addParam('use_emulator', True, "Use the PBS Emulator")
 
     params.addStringSubParam('combine_streams', '#PBS -j oe', "Combine stdout and stderror into one file (needed for NO EXPECTED ERR)")
     params.addStringSubParam('threads', '--n-threads=THREADS', "The number of threads to run per MPI process.")
@@ -124,5 +125,9 @@ class PBSJob(Job):
 
   def launch(self, script_name):
     # Finally launch the job
-    my_process = subprocess.Popen('qsub ' + script_name, stdout=subprocess.PIPE, shell=True)
-    print 'JOB_NAME:', self.params['job_name'], 'JOB_ID:', my_process.communicate()[0].split('.')[0], 'TEST_NAME:', self.params['test_name']
+    if self.params['use_emulator']:
+      my_process = subprocess.Popen('bash ' + script_name, stdout=subprocess.PIPE, shell=True)
+      my_process.wait()
+    else:
+      my_process = subprocess.Popen('qsub ' + script_name, stdout=subprocess.PIPE, shell=True)
+      print 'JOB_NAME:', self.params['job_name'], 'JOB_ID:', my_process.communicate()[0].split('.')[0], 'TEST_NAME:', self.params['test_name']

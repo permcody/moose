@@ -421,6 +421,8 @@ class TestHarness:
       return ('BATCH FILE NOT FOUND', '')
 
   def buildPBSBatch(self, output, tester):
+    print output
+
     # Create/Update the batch file
     if 'command not found' in output:
       return ('QSUB NOT FOUND', '')
