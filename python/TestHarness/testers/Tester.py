@@ -1,6 +1,7 @@
 from util import *
 from InputParameters import InputParameters
 from MooseObject import MooseObject
+from cluster_launcher import ClusterLauncher
 
 class Tester(MooseObject):
 
@@ -10,6 +11,8 @@ class Tester(MooseObject):
 
     # Common Options
     params.addRequiredParam('type', "The type of test of Tester to create for this test.")
+    params.addParam('mode',   "NORMAL", "The launch mode that this Tester is being invoked in. (NORMAL, PBS, PBS_EMULATOR)")
+
     params.addParam('max_time',   300, "The maximum in seconds that the test will be allowed to run.")
     params.addParam('min_reported_time', "The minimum time elapsed before a test is reported as taking to long to run.")
     params.addParam('skip',     "Provide a reason this test will be skipped.")
@@ -44,6 +47,11 @@ class Tester(MooseObject):
   def __init__(self, name, params):
     MooseObject.__init__(self, name, params)
     self.specs = params
+
+
+  def setObjectReferences(self, test_harness, cluster_launcher):
+    self.test_harness = test_harness
+    self.cluster_launcher = cluster_launcher
 
 
   def setValgrindMode(self, mode):
@@ -88,9 +96,37 @@ class Tester(MooseObject):
   def getParameters(self):
     return self.specs
 
+  # This is the base level method for retrieving the command to run for the Tester. DO NOT override
+  # this method in any of your derived classes. Instead see "getCommand()".
+  def getCommandBase(self, options):
+    command = self.getCommand(options)
 
-  # This is the base level runnable check common to all Testers.  DO NOT override
-  # this method in any of your derived classes.  Instead see "checkRunnable"
+    if self._pars['mode'] == 'PBS':
+      job_params = self.cluster_launcher.getFactory().validParams('PBSJob')
+      job_params['type'] = 'PBSJob'
+
+      # Convert MAX_TIME to hours:minutes for walltime use
+      hours = int(int(self._pars['max_time']) / 3600)
+      minutes = int(int(self._pars['max_time']) / 60) % 60
+      job_params['walltime'] = '{0:02d}'.format(hours) + ':' + '{0:02d}'.format(minutes) + ':00'
+
+      # TODO: Make a better job name (input isn't guarenteed to exist)
+      job_name = self._pars['input'][:6] + '_' + str('0').zfill(2)
+      job_name = job_name.replace('.', '').replace('-', '')
+      job_params['job_name'] = job_name
+      job_params['no_copy'] = [self.test_harness.getOptions().input_file_name]
+      job_params['template_script'] = os.path.join(self.test_harness.getMooseDir(), 'python', 'ClusterLauncher', 'QueueSystemHelpers', 'pbs_test_harness.sh')
+      job_params['chunks'] = 1
+      job_params['mpi_procs'] = 1 # TODO: Fix this
+      job_params['command'] = command
+
+      job = self.cluster_launcher.createJob(os.getcwd(), job_params, False, '')
+      command = 'bash ' + job.final_template_script
+
+    return command
+
+  # This is the base level runnable check common to all Testers. DO NOT override
+  # this method in any of your derived classes. Instead see "checkRunnable()".
   def checkRunnableBase(self, options, checks):
     reason = ''
 

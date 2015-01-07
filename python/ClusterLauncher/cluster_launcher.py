@@ -48,6 +48,9 @@ class ClusterLauncher:
     self.factory = Factory()
     self.factory.loadPlugins([os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))], 'QueueSystemHelpers', Job)
 
+  def getFactory(self):
+    return self.factory
+
   def parseJobsFile(self, template_dir, job_file):
     jobs = []
     # We expect the job list to be named "job_list"

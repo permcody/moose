@@ -27,6 +27,7 @@ class PBSJob(Job):
     params.addStringSubParam('cli_args', 'CLI_ARGS', "Any extra command line arguments to tack on.")
     params.addStringSubParam('notifications', '#PBS -m NOTIFICATIONS', "The PBS notifications to enable: 'b' for begin, 'e' for end, 'a' for abort.")
     params.addStringSubParam('notify_address', '#PBS -M NOTIFY_ADDRESS', "The email address to use for PBS notifications")
+    params.addStringSubParam('command', 'COMMAND', "The completely assembled command if one is supplied, otherwise it can be assembled for you.")
 
     # Soft linked output during run
     params.addParam('soft_link_output', False, "Create links to your STDOUT and STDERR files in your working directory during the run.")
@@ -51,6 +52,7 @@ class PBSJob(Job):
     # Copy directories
     if self.params.isValid('copy_files'):
       for file in self.params['copy_files'].split():
+        print file
         if os.path.isfile(os.path.join('..', file)):
           shutil.copy(os.path.join('..', file), '.')
         elif os.path.isdir(os.path.join('..', file)):

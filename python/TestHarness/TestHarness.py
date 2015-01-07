@@ -10,6 +10,7 @@ from socket import gethostname
 #from options import *
 from util import *
 from RunScheduler import RunScheduler
+from cluster_launcher import ClusterLauncher
 from CSVDiffer import CSVDiffer
 from XMLDiffer import XMLDiffer
 from Tester import Tester
@@ -36,6 +37,7 @@ class TestHarness:
 
   def __init__(self, argv, app_name, moose_dir):
     self.factory = Factory()
+    self.cluster_launcher = ClusterLauncher()
 
     # Get dependant applications and load dynamic tester plugins
     # If applications have new testers, we expect to find them in <app_dir>/scripts/TestHarness/testers
@@ -188,7 +190,7 @@ class TestHarness:
                   (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
 
                 if should_run:
-                  command = tester.getCommand(self.options)
+                  command = tester.getCommandBase(self.options)
                   # This method spawns another process and allows this loop to continue looking for tests
                   # RunScheduler will call self.testOutputAndFinish when the test has completed running
                   # This method will block when the maximum allowed parallel processes are running
@@ -252,10 +254,10 @@ class TestHarness:
     params['hostname'] = self.host_name
     params['moose_dir'] = self.moose_dir
 
+    # Set the PBS mode if appropriate
     if self.options.pbs:
       params['mode'] = 'PBS'
-    else:
-      params['mode'] = 'NORMAL'
+      tester.setObjectReferences(self, self.cluster_launcher)
 
     if params.isValid('prereq'):
       if type(params['prereq']) != list:

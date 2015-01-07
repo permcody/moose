@@ -23,7 +23,7 @@ class RunScheduler(MooseObject):
   @staticmethod
   def validParams():
     params = MooseObject.validParams()
-    params.addRequiredParam('test_harness', "TestHarness instance")
+    params.addRequiredParam('test_harness',     "TestHarness instance")
     params.addParam('max_processes',     1, "The maximum number of jobs to run concurrently")
     params.addParam('average_load',     64, "The load average not to exceed")
     params.addParam('mode',       "NORMAL", "The scheduler mode: NORMAL, PBS, PBS_EMULATOR")
@@ -76,9 +76,9 @@ class RunScheduler(MooseObject):
 
   ## run the command asynchronously and call testharness.testOutputAndFinish when complete
   def run(self, tester, command, recurse=True):
-    if self.mode == 'PBS':
-      # Override the command to run
-      command = self.createClusterLauncherFile(tester)
+#    if self.mode == 'PBS':
+#      # Override the command to run
+#      command = self.createClusterLauncherFile(tester)
 
     # First see if any of the queued jobs can be run but only if recursion is allowed on this run
     if recurse:
