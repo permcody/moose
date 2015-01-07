@@ -252,6 +252,11 @@ class TestHarness:
     params['hostname'] = self.host_name
     params['moose_dir'] = self.moose_dir
 
+    if self.options.pbs:
+      params['mode'] = 'PBS'
+    else:
+      params['mode'] = 'NORMAL'
+
     if params.isValid('prereq'):
       if type(params['prereq']) != list:
         print "Option 'prereq' needs to be of type list in " + params['test_name']
