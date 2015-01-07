@@ -34,16 +34,18 @@ class Job(MooseObject):
     params.addRequiredParam('type', "The type of test of Tester to create for this test.")
     params.addParam('job_name', 'The name of the job')
     params.addParam('test_name', 'The name of the test')
+    params.addParam('no_copy', [], "A list of files specifically not to copy")
     return params
 
   def __init__(self, name, params):
     self.params = params
 
   # Called from the current directory to copy files (usually from the parent)
-  def copyFiles(self, job_file):
+  def copyFiles(self):
+    # Copy files (unless they are listed in "no_copy"
     for file in os.listdir('..'):
-      if os.path.isfile(os.path.join('..', file)) and file != job_file:
-        shutil.copy(os.path.join('..', file), '.')
+      if os.path.isfile(os.path.join('..', file)) and (not self.params.isValid('no_copy') or file not in self.params['no_copy']):
+         shutil.copy(os.path.join('..', file), '.')
 
   # Called to prepare a job script if necessary
   def prepareJobScript(self, create_separate_dir):

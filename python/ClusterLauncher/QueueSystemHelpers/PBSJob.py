@@ -17,7 +17,6 @@ class PBSJob(Job):
     params.addParam('template_script', os.path.join('QueueSystemHelpers', 'pbs_cluster_submit.sh'), "The template job script to use.")
     params.addParam('place', 'scatter:excl', "The PBS job placement scheme to use.")
     params.addParam('walltime', '4:00:00', "The requested walltime for this job.")
-    params.addParam('no_copy', "A list of files specifically not to copy")
     params.addParam('copy_files', "A list of files specifically to copy")
     params.addParam('use_emulator', True, "Use the PBS Emulator")
 
@@ -42,20 +41,16 @@ class PBSJob(Job):
 
     # Prepend the MOOSE directory and python stub to the front of the template script path
     self.params['template_script'] = os.path.join(params['MOOSE_DIR'], 'python', 'ClusterLauncher', params['template_script'])
+    self.final_template_script = ''
+    self.working_dir = os.getcwd()
 
   # Called from the current directory to copy files (usually from the parent)
-  def copyFiles(self, job_file):
-    params = self.params
-
-    # Copy files (unless they are listed in "no_copy"
-    for file in os.listdir('..'):
-      if os.path.isfile(os.path.join('..', file)) and file != job_file and (not params.isValid('no_copy') or file not in params['no_copy']):
-         shutil.copy(os.path.join('..', file), '.')
+  def copyFiles(self):
+    super(PBSJob, self).copyFiles()
 
     # Copy directories
-    if params.isValid('copy_files'):
-      for file in params['copy_files'].split():
-        print file
+    if self.params.isValid('copy_files'):
+      for file in self.params['copy_files'].split():
         if os.path.isfile(os.path.join('..', file)):
           shutil.copy(os.path.join('..', file), '.')
         elif os.path.isdir(os.path.join('..', file)):
@@ -121,13 +116,19 @@ class PBSJob(Job):
     f.write(content)
     f.close()
 
-    return final_template_script
+    # Set the template script instance variable
+    self.final_template_script = final_template_script
 
-  def launch(self, script_name):
+  def launch(self):
+    saved_dir = os.getcwd()
+    os.chdir(self.working_dir)
+
     # Finally launch the job
     if self.params['use_emulator']:
-      my_process = subprocess.Popen('bash ' + script_name, stdout=subprocess.PIPE, shell=True)
+      my_process = subprocess.Popen('bash ' + self.final_template_script, stdout=subprocess.PIPE, shell=True)
       my_process.wait()
     else:
-      my_process = subprocess.Popen('qsub ' + script_name, stdout=subprocess.PIPE, shell=True)
+      my_process = subprocess.Popen('qsub ' + self.final_template_script, stdout=subprocess.PIPE, shell=True)
       print 'JOB_NAME:', self.params['job_name'], 'JOB_ID:', my_process.communicate()[0].split('.')[0], 'TEST_NAME:', self.params['test_name']
+
+    os.chdir(saved_dir)

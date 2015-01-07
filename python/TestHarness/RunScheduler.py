@@ -305,7 +305,8 @@ class RunScheduler(MooseObject):
     params['job_name'] = params['job_name'].replace('-', '')
 
     # Convert TEST_NAME to input tests file name (normally just 'tests')
-    params['no_copy'] = self.harness.getOptions().input_file_name
+    # TODO: This parameter should probably be added to Tester
+    params['no_copy'] = [self.harness.getOptions().input_file_name]
 
     # For PBS Emulation we will use a different launch script
     params['template_script'] = os.path.join(self.harness.getMooseDir(), 'python', 'ClusterLauncher', 'QueueSystemHelpers', 'pbs_test_harness.sh')

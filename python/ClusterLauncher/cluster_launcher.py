@@ -98,6 +98,9 @@ class ClusterLauncher:
           else:
             params_ignored.add(key)
 
+        # Append the name of the job specification file to the no copy list
+        params['no_copy'].append(job_file)
+
         # Make sure that all required parameters are supplied
         required_params_missing = params.required_keys() - params_parsed
         if len(required_params_missing):
@@ -109,17 +112,17 @@ class ClusterLauncher:
         jobs.append(params)
     return jobs
 
-  def createAndLaunchJob(self, template_dir, job_file, params, options):
+  def createJob(self, template_dir, params, create_separate_dir, log_message):
     next_dir = '.'
     next_name = getNextDirName(params['job_name'], os.listdir('.'))
     saved_cwd = os.getcwd()
-    if options.create_separate_dir:
+    if create_separate_dir:
       os.mkdir(os.path.join(template_dir, next_name))
 
       # Log it
-      if options.message:
+      if len(log_message):
         f = open(os.path.join(template_dir, 'jobs.log'), 'a')
-        f.write(next_name.ljust(20) + ': ' + options.message + '\n')
+        f.write(next_name.ljust(20) + ': ' + log_message + '\n')
         f.close()
 
       os.chdir(os.path.join(template_dir, next_name))
@@ -132,15 +135,17 @@ class ClusterLauncher:
     job_instance = self.factory.create(params['type'], params['job_name'], params)
 
     # Copy files
-    job_instance.copyFiles(job_file)
+    job_instance.copyFiles()
 
     # Prepare the Job Script
-    script_name = job_instance.prepareJobScript(options.create_separate_dir)
+    script_name = job_instance.prepareJobScript(create_separate_dir)
 
-    # Launch it!
-    job_instance.launch(script_name)
+#    # Launch it!
+#    job_instance.launch(script_name)
 
     os.chdir(saved_cwd)
+
+    return job_instance
 
   def registerJobType(self, type, name):
     self.factory.register(type, name)
@@ -154,7 +159,9 @@ class ClusterLauncher:
     jobs = self.parseJobsFile(template_dir, job_file)
 
     for job in jobs:
-      self.createAndLaunchJob(template_dir, job_file, job, options)
+      job_instance = self.createJob(template_dir, job, options.create_separate_dir, options.message)
+      job_instance.launch()
+
 
 ########################################################
 def main():
