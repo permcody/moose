@@ -5,7 +5,7 @@
 []
 
 [GlobalParams]
-  op_num = 17
+  op_num = 30
   var_name_base = gr
 []
 
@@ -109,7 +109,7 @@
     # ebsd_reader = ebsd
     type = GrainTracker
     threshold = 0.1
-    convex_hull_buffer = -10.0
+    convex_hull_buffer = -3
     use_single_map = false
     enable_var_coloring = true
     condense_map_info = true
@@ -168,3 +168,6 @@
   [../]
 []
 
+[Problem]
+  use_legacy_uo_initialization = false
+[]
