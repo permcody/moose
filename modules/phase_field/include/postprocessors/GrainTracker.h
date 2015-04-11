@@ -107,6 +107,8 @@ protected:
    */
   Real boundingRegionDistance(std::vector<BoundingSphereInfo *> & spheres1, std::vector<BoundingSphereInfo *> & spheres2, bool ignore_radii) const;
 
+  Point centerOfMass(UniqueGrain & grain) const;
+
   virtual unsigned long calculateUsage() const;
 
   /*************************************************
@@ -170,6 +172,8 @@ public:
   };
 
   bool _compute_op_maps;
+
+  bool _center_mass_tracking;
 
   /**
    * Data structure for active order parameter information on elements:
