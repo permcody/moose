@@ -16,6 +16,7 @@
 #include "libmesh/sphere.h"
 
 #include <limits>
+#include <queue>
 #include <algorithm>
 
 template<> void dataStore(std::ostream & stream, GrainTracker::UniqueGrain * & unique_grain, void * context)
@@ -327,6 +328,8 @@ GrainTracker::buildBoundingSpheres()
       // The radius is the different between the outer edge of the "bounding box"
       // and the center plus the "hull buffer" value
       Real radius = (max - center).size() + _hull_buffer;
+      if (radius <= 0)
+        radius = 1e-3; // tol
 
       unsigned int some_node_id = *(it1->_entity_ids.begin());
       _bounding_spheres[map_num].push_back(new BoundingSphereInfo(some_node_id, center, radius));
@@ -433,74 +436,248 @@ GrainTracker::trackGrains()
   {
     if (_ebsd_reader)
     {
-      Real grain_num = _ebsd_reader->getGrainNum();
+      MeshBase & mesh = _mesh.getMesh();
 
-      std::vector<Point> center_points(grain_num);
+      unsigned int num_grains = _ebsd_reader->getGrainNum();
 
-      for (unsigned int gr=0; gr < grain_num; ++gr)
-      {
-        const EBSDReader::EBSDAvgData & d = _ebsd_reader->getAvgData(gr);
-        center_points[gr] = d.p;
-      }
+      // new_grains reserves the 0 index for the empty grain, make sure to take that into account here
+      if (num_grains != new_grains.size() - 1)
+        mooseError("Mismatch:\nEBSD centers: " << num_grains << " Grain Tracker Centers: " << new_grains.size());
 
-//      // To find the minimum distance we will use the boundingRegionDistance routine.
-//      // To do that, we need to build BoundingSphereObjects with a few dummy values, radius and node_id will be ignored
-//      BoundingSphereInfo ebsd_sphere(0, Point(0, 0, 0), 1);
-//      std::vector<BoundingSphereInfo *> ebsd_vector(1);
-//      ebsd_vector[0] = &ebsd_sphere;
+      /**
+       * We'll create a data structure to help us figure out the correct mapping from the EBSD data to
+       * the grain tracker data.
+       * new_grain index -> EBSD grain num -> hits
+       *
+       * Since both the ebsd grains nums and the new_grains indexes are continous from 0..n we can
+       * use a vector of vectors for this data structure.
+       */
+      std::vector<std::vector<int> > ebsd_to_gt_hits(num_grains);
+      // Resize and initialize the inner vectors
+      for (unsigned int i = 0; i < new_grains.size(); ++i)
+        ebsd_to_gt_hits[i].resize(num_grains, 0);
 
-      std::set<unsigned int> used_indices;
-      std::map<unsigned int, unsigned int> error_indices;
-
-      if (grain_num != new_grains.size())
-        mooseWarning("Mismatch:\nEBSD centers: " << grain_num << " Grain Tracker Centers: " << new_grains.size());
-
+      // Populate the data structure with hit information
       for (unsigned int i = 0; i < new_grains.size(); ++i)
       {
-        Real min_centroid_diff = std::numeric_limits<Real>::max();
-        unsigned int closest_match_idx = 0;
+        // Get the current list of mesh entities for the new grain
+        const std::set<dof_id_type> * new_grain_entity_ids = new_grains[i]->nodes_ptr;
 
-        Point center_of_mass = centerOfMass(*new_grains[i]);
-
-        for (unsigned int j = 0; j<center_points.size(); ++j)
+        for (std::set<dof_id_type>::const_iterator it = new_grain_entity_ids->begin(); it != new_grain_entity_ids->end(); ++it)
         {
-//          // Update the ebsd sphere to be used in the boundingRegionDistance calculation
-//          ebsd_sphere.b_sphere.center() = center_points[j];
+          Elem * elem = mesh.query_elem(*it);
+          if (! elem)
+            mooseError("Something wrong with entity id: " << *it);
 
-          Real curr_centroid_diff = (center_points[j] - center_of_mass).size();
-          if (curr_centroid_diff <= min_centroid_diff)
+          Point centroid = elem->centroid();
+
+          const EBSDReader::EBSDPointData & d = _ebsd_reader->getData(centroid);
+
+          // Here's our j index (the ebsd grain number)
+          unsigned int j = d.grain;
+
+          // Increment the hits
+          ++ebsd_to_gt_hits[i][j];
+        }
+      }
+
+      for (unsigned int i = 0; i < num_grains; ++i)
+      {
+        std::cout << "\n\nrow: " << i << '\n';
+        for (unsigned int j = 0; j < num_grains; ++j)
+          if (ebsd_to_gt_hits[i][j] > 0)
+            std::cout << '\t' << j << ": " << ebsd_to_gt_hits[i][j] << '\n';
+      }
+      std::cout << std::endl;
+
+      // Determine the mapping
+      unsigned int grains_assigned = 0;
+      bool keep_going = true;
+      while (keep_going && grains_assigned < num_grains)
+      {
+        keep_going = false;
+
+        for (unsigned int i = 0; i < num_grains; ++i)
+        {
+          int max_hits = -1;
+          unsigned int best_idx = 0;
+          bool more_than_one_match = false;
+          for (unsigned int j = 0; j < num_grains; ++j)
           {
-            closest_match_idx = j;
-            min_centroid_diff = curr_centroid_diff;
+            if (ebsd_to_gt_hits[i][j] > max_hits)
+            {
+              max_hits = ebsd_to_gt_hits[i][j];
+              best_idx = j;
+              more_than_one_match = false;
+            }
+            else if (ebsd_to_gt_hits[i][j] == max_hits)
+              more_than_one_match = true;
+          }
+
+          // Did we find a definitive match?
+          if (max_hits > 0 && ! more_than_one_match)
+          {
+            // Adjust indexing to be 1-based to level unique_grain zero reserved for the empty grain
+            unsigned int unique_grain_idx = best_idx + 1;
+
+            if (_unique_grains.find(unique_grain_idx) != _unique_grains.end())
+              mooseError("\nUnique Grain ID: " <<  unique_grain_idx << " already in use when working on index: " << i);
+
+            std::cout << "\nAssigning grain ID: " << unique_grain_idx << " to grain tracker index: " << i << "\n" << std::endl;
+
+            new_grains[i]->status = MARKED;
+            _unique_grains[unique_grain_idx] = new_grains[i];
+
+            // Zero out the column corresponding to the matched ebsd index
+            for (unsigned int j = 0; j < num_grains; ++j)
+              ebsd_to_gt_hits[i][j] = 0;
+
+            // Found a match so keep going
+            keep_going = true;
           }
         }
-
-        if (used_indices.find(closest_match_idx) != used_indices.end())
-          error_indices.insert(std::make_pair(i, closest_match_idx));
-        else
-        {
-          used_indices.insert(closest_match_idx);
-
-          // Finally assign the grain index
-          /**
-           * TODO: Verify this mapping, the zeroth index is reserved for places where there are no grains
-           */
-          _unique_grains[closest_match_idx+1] = new_grains[closest_match_idx];
-          Moose::out << "Assigning center " << center_points[closest_match_idx] << " absolute distance: " << min_centroid_diff << '\n';
-        }
-      }
-      if (!error_indices.empty())
-      {
-        for (std::map<unsigned int, UniqueGrain *>::const_iterator grain_it = _unique_grains.begin(); grain_it != _unique_grains.end(); ++grain_it)
-          Moose::out << "Grain " << grain_it->first << ": " << center_points[grain_it->first - 1] << '\n';
-
-        Moose::out << "Error Indices:\n";
-        for (std::map<unsigned int, unsigned int>::const_iterator it = error_indices.begin(); it != error_indices.end(); ++it)
-          Moose::out << "Grain " << it->first << '(' << it->second << ')' << ": " << center_points[it->second] << '\n';
-
-        mooseError("Error with ESBD Mapping (see above unused indices)");
       }
     }
+
+
+
+
+//      for (unsigned int i = 0; i < new_grains.size(); ++i)
+//      {
+//        std::map<unsigned int, unsigned int> grain_num_to_hits;
+//        const std::set<dof_id_type> * new_grain_entity_ids = new_grains[i]->nodes_ptr;
+//
+//        for (std::set<dof_id_type>::const_iterator it = new_grain_entity_ids->begin(); it != new_grain_entity_ids->end(); ++it)
+//        {
+//          Elem * elem = mesh.elem(*it);
+//          Point centroid = elem->centroid();
+//
+//          const EBSDReader::EBSDPointData & d = _ebsd_reader->getData(centroid);
+//
+//          // Increment the hits to find the most matches for the current grain
+//          const std::map<unsigned int, unsigned int>::const_iterator pos = grain_num_to_hits.find(d.grain);
+//
+//          if (pos == grain_num_to_hits.end())
+//            grain_num_to_hits[d.grain + 1] = 1;
+//          else
+//            grain_num_to_hits[d.grain + 1]++;
+//        }
+//
+//        /**
+//         * At this point we have some number of possible grains that this new_grain could map to
+//         * based on the values retrieved from the EBSD reader. However, there may be several equally
+//         * weighted options (i.e. we may have multiple grain numbers marked with the same number of hits
+//         */
+//
+//        // Now find the number with the most hits - this will be our grain number
+//        unsigned int grain_num = 0;
+//        unsigned int max_hits = 0;
+//
+//        std::cout << "New Grain index: " << i;
+//        for (std::map<unsigned int, unsigned int>::const_iterator it = grain_num_to_hits.begin(); it != grain_num_to_hits.end(); ++it)
+//        {
+//          std::cout << "\n\t num: " << it->first << " hits: " << it->second;
+//
+//          if (it->second >= max_hits)
+//          {
+//            max_hits = it->second;
+//            grain_num = it->first;
+//          }
+//        }
+//
+////        std::cout << "Elem id: " << entity_id << '\n';
+////
+////        Point centroid = elem->centroid();
+////
+////        std::cout << "Centroid: " << centroid << '\n';
+////
+////        const EBSDReader::EBSDPointData & d = _ebsd_reader->getData(centroid);
+////
+////        std::cout << "EBSD Data:"
+////                  << "\n\t" << d.grain
+////                  << "\n\t" << d.phase
+////                  << "\n\t" << d.op
+////                  << "\n";
+//
+//        if (_unique_grains.find(grain_num) != _unique_grains.end())
+//          mooseError("\nUnique Grain ID: " <<  grain_num << " already in use when using EBSD op numbers");
+//
+//        new_grains[i]->status = MARKED;
+//
+//        std::cout << "\nAssigning grain ID: " << grain_num << "\n\n";
+//
+//        _unique_grains[grain_num] = new_grains[i]; // Adujst op indexing to be 1-based
+//      }
+//    }
+
+//      Real grain_num = _ebsd_reader->getGrainNum();
+//
+//      std::vector<Point> center_points(grain_num);
+//
+//      for (unsigned int gr=0; gr < grain_num; ++gr)
+//      {
+//        const EBSDReader::EBSDAvgData & d = _ebsd_reader->getAvgData(gr);
+//        center_points[gr] = d.p;
+//      }
+//
+////      // To find the minimum distance we will use the boundingRegionDistance routine.
+////      // To do that, we need to build BoundingSphereObjects with a few dummy values, radius and node_id will be ignored
+////      BoundingSphereInfo ebsd_sphere(0, Point(0, 0, 0), 1);
+////      std::vector<BoundingSphereInfo *> ebsd_vector(1);
+////      ebsd_vector[0] = &ebsd_sphere;
+//
+//      std::set<unsigned int> used_indices;
+//      std::map<unsigned int, unsigned int> error_indices;
+//
+//      if (grain_num != new_grains.size())
+//        mooseWarning("Mismatch:\nEBSD centers: " << grain_num << " Grain Tracker Centers: " << new_grains.size());
+//
+//      for (unsigned int i = 0; i < new_grains.size(); ++i)
+//      {
+//        Real min_centroid_diff = std::numeric_limits<Real>::max();
+//        unsigned int closest_match_idx = 0;
+//
+//        Point center_of_mass = centerOfMass(*new_grains[i]);
+//
+//        for (unsigned int j = 0; j<center_points.size(); ++j)
+//        {
+////          // Update the ebsd sphere to be used in the boundingRegionDistance calculation
+////          ebsd_sphere.b_sphere.center() = center_points[j];
+//
+//          Real curr_centroid_diff = (center_points[j] - center_of_mass).size();
+//          if (curr_centroid_diff <= min_centroid_diff)
+//          {
+//            closest_match_idx = j;
+//            min_centroid_diff = curr_centroid_diff;
+//          }
+//        }
+//
+//        if (used_indices.find(closest_match_idx) != used_indices.end())
+//          error_indices.insert(std::make_pair(i, closest_match_idx));
+//        else
+//        {
+//          used_indices.insert(closest_match_idx);
+//
+//          // Finally assign the grain index
+//          /**
+//           * TODO: Verify this mapping, the zeroth index is reserved for places where there are no grains
+//           */
+//          _unique_grains[closest_match_idx+1] = new_grains[closest_match_idx];
+//          Moose::out << "Assigning center " << center_points[closest_match_idx] << " absolute distance: " << min_centroid_diff << '\n';
+//        }
+//      }
+//      if (!error_indices.empty())
+//      {
+//        for (std::map<unsigned int, UniqueGrain *>::const_iterator grain_it = _unique_grains.begin(); grain_it != _unique_grains.end(); ++grain_it)
+//          Moose::out << "Grain " << grain_it->first << ": " << center_points[grain_it->first - 1] << '\n';
+//
+//        Moose::out << "Error Indices:\n";
+//        for (std::map<unsigned int, unsigned int>::const_iterator it = error_indices.begin(); it != error_indices.end(); ++it)
+//          Moose::out << "Grain " << it->first << '(' << it->second << ')' << ": " << center_points[it->second] << '\n';
+//
+//        mooseError("Error with ESBD Mapping (see above unused indices)");
+//      }
+//    }
     else
     {
       for (unsigned int i = 1; i <= new_grains.size(); ++i)
@@ -769,8 +946,6 @@ GrainTracker::swapSolutionValues(std::map<unsigned int, UniqueGrain *>::iterator
   for (std::set<dof_id_type>::const_iterator entity_it = grain_it1->second->nodes_ptr->begin();
        entity_it != grain_it1->second->nodes_ptr->end(); ++entity_it)
   {
-    Node *curr_node = NULL;
-
     if (_is_elemental)
     {
       Elem *elem = mesh.query_elem(*entity_it);

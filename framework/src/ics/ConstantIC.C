@@ -30,8 +30,9 @@ ConstantIC::ConstantIC(const std::string & name, InputParameters parameters) :
 }
 
 Real
-ConstantIC::value(const Point & /*p*/)
+ConstantIC::value(const Point & p)
 {
+  std::cout << "Elem: " << _current_elem->id() << " Point: " << p << '\n';
+
   return _value;
 }
-
