@@ -67,11 +67,34 @@ ReconVarIC::initialSetup()
 }
 
 
+// Initialize each node value by referencing nodeToGrainWeightMap from the EBSDReader user object.
+Real
+ReconVarIC::value(const Point & p)
+{
+  // Import nodeToGrainWeightMap from EBSDReader for all nodes
+  // This map consists of the node index followed by a vector of weights for all grains at that node
+  const std::map<dof_id_type, std::vector<Real> > & node_to_grn_weight_map = _ebsd_reader.getNodeToGrainWeightMap();
+
+  std::map<dof_id_type, std::vector<Real> >::const_iterator it = node_to_grn_weight_map.find(p.id());
+  if (it == node_to_grn_weight_map.end())
+  {
+    mooseError("Really Bad");
+  }
+
+  // Increment through all grains at node_index p
+  for (unsigned int grn = 0; grn < _grain_num; grn++)
+  {
+
+  // If the current order parameter index (_op_index) is equal to the assinged
+  // index (_assigned_op), set the value from node_to_grn_weight_map
+  if (_assigned_op[grn] == _op_index)
+    return (it->second)[grn];
+  }
+
+/*
 // Note that we are not actually using Point coordinates that get passed in to assign the order parameter.
 // By knowing the curent elements index, we can use it's centroid to grab the EBSD grain index
 // associated with the point from the EBSDReader user object.
-Real
-ReconVarIC::value(const Point &)
 {
   const Point p1 = _current_elem->centroid();
   const EBSDReader::EBSDPointData & d = _ebsd_reader.getData(p1);
@@ -103,3 +126,4 @@ ReconVarIC::value(const Point &)
 
   return value;
 }
+*/
