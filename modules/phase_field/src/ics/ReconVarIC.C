@@ -61,6 +61,12 @@ ReconVarIC::initialSetup()
     _assigned_op.resize(_grain_num);
 
     _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints,_op_num, _mesh, _var);
+
+    /* Output _assigned_op map for debugging purposes
+    for (std::vector<Real>::const_iterator ii = _assigned_op.begin(); ii != _assigned_op.end() ;++ii)
+    {
+      Moose::out << "_assigned_op: " << *ii << "\n" << std::endl;
+    }*/
   }
 }
 
@@ -71,6 +77,16 @@ ReconVarIC::value(const Point & /*p*/)
   // Import nodeToGrainWeightMap from EBSDReader for all nodes.  This map consists of the node index
   // followed by a vector of weights for all grains at that node.
   const std::map<dof_id_type, std::vector<Real> > & node_to_grn_weight_map = _ebsd_reader.getNodeToGrainWeightMap();
+
+  /* Output rows of node_to_grain_weight_map for debugging purposes
+  for(std::map<dof_id_type, std::vector<Real> >::const_iterator it2 = node_to_grn_weight_map.begin();
+    it2 != node_to_grn_weight_map.end(); ++it2)
+  {
+    Moose::out << "Node_id:   " << it2->first <<  std::endl;
+    for (unsigned int j = 0; j < it2->second.size(); ++j)
+      if (it2->second[j] > 0)
+        Moose::out << j << ": " << it2->second[j] << '\n';
+  }*/
 
   // Return error if current node is NULL
   if (_current_node == NULL)
@@ -86,15 +102,13 @@ ReconVarIC::value(const Point & /*p*/)
   }
 
   // Increment through all grains at node_index
-  Real value = 0.0;
   for (unsigned int grn = 0; grn < _grain_num; ++grn)
   {
     // If the current order parameter index (_op_index) is equal to the assinged index (_assigned_op),
     // set the value from node_to_grn_weight_map
-    if (_assigned_op[grn] == _op_index)
-      value = (it->second)[grn];
-    else
-      value = 0.0;
+    if (_assigned_op[grn] == _op_index && (it->second)[grn] > 0.0)
+      return (it->second)[grn];
   }
-  return value;
+
+  return 0.0;
 }
