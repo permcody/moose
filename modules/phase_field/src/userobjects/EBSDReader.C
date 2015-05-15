@@ -32,6 +32,10 @@ EBSDReader::EBSDReader(const std::string & name, InputParameters params) :
     _dy(0.),
     _dz(0.)
 {
+}
+
+EBSDReader::initialSetup()
+{
   // Fetch and check mesh
   EBSDMesh * mesh = dynamic_cast<EBSDMesh *>(&_mesh);
   if (mesh == NULL)
