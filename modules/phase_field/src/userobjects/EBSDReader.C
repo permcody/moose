@@ -34,6 +34,7 @@ EBSDReader::EBSDReader(const std::string & name, InputParameters params) :
 {
 }
 
+void
 EBSDReader::initialSetup()
 {
   // Fetch and check mesh

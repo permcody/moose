@@ -106,6 +106,8 @@ protected:
    */
   void mergeSets(bool use_periodic_boundary_info);
 
+  void communicateOneList(std::list<BubbleData> & list, unsigned int owner_id, unsigned int map_num);
+
   /**
    * This routine adds the periodic node information to our data structure prior to packing the data
    * this makes those periodic neighbors appear much like ghosted nodes in a multiprocessor setting
