@@ -13,6 +13,32 @@
 #include "libmesh/tensor_value.h"
 #include "MaterialProperty.h"
 
+template<> void dataStore(std::ostream & stream, RankTwoTensor & t, void * context)
+{
+  storeHelper(stream, t(0,0), context);
+  storeHelper(stream, t(0,1), context);
+  storeHelper(stream, t(0,2), context);
+  storeHelper(stream, t(1,0), context);
+  storeHelper(stream, t(1,1), context);
+  storeHelper(stream, t(1,2), context);
+  storeHelper(stream, t(2,0), context);
+  storeHelper(stream, t(2,1), context);
+  storeHelper(stream, t(2,2), context);
+}
+
+template<> void dataLoad(std::istream & stream, RankTwoTensor & t, void * context)
+{
+  loadHelper(stream, t(0,0), context);
+  loadHelper(stream, t(0,1), context);
+  loadHelper(stream, t(0,2), context);
+  loadHelper(stream, t(1,0), context);
+  loadHelper(stream, t(1,1), context);
+  loadHelper(stream, t(1,2), context);
+  loadHelper(stream, t(2,0), context);
+  loadHelper(stream, t(2,1), context);
+  loadHelper(stream, t(2,2), context);
+}
+
 template<>
 void mooseSetToZero<RankTwoTensor>(RankTwoTensor & v)
 {

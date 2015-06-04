@@ -104,6 +104,7 @@ template<typename T>
 inline void
 dataStore(std::ostream & stream, T & v, void * /*context*/)
 {
+  mooseError("THIS IS STUPID\n\n");
   // Moose::out<<"Generic dataStore"<<std::endl;
   stream.write((char *) &v, sizeof(v));
 }
@@ -211,6 +212,14 @@ dataStore(std::ostream & stream, HashMap<T,U> & m, void * context)
     storeHelper(stream, it->second, context);
   }
 }
+
+// Built-in
+template<> void dataStore(std::ostream & stream, int & v, void * /*context*/);
+template<> void dataStore(std::ostream & stream, unsigned int & v, void * /*context*/);
+template<> void dataStore(std::ostream & stream, const unsigned int & v, void * /*context*/);
+template<> void dataStore(std::ostream & stream, long & v, void * /*context*/);
+template<> void dataStore(std::ostream & stream, uint64_t & v, void * /*context*/);
+template<> void dataStore(std::ostream & stream, bool & v, void * /*context*/);
 
 // Specializations (defined in .C)
 template<> void dataStore(std::ostream & stream, Real & v, void * /*context*/);

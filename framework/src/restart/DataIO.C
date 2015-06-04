@@ -17,6 +17,48 @@
 
 template<>
 void
+dataStore(std::ostream & stream, int & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
+dataStore(std::ostream & stream, unsigned int & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
+dataStore(std::ostream & stream, const unsigned int & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
+dataStore(std::ostream & stream, long & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
+dataStore(std::ostream & stream, uint64_t & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
+dataStore(std::ostream & stream, bool & v, void * /*context*/)
+{
+  stream.write((char *) &v, sizeof(v));
+}
+
+template<>
+void
 dataStore(std::ostream & stream, Real & v, void * /*context*/)
 {
   stream.write((char *) &v, sizeof(v));

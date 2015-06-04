@@ -355,7 +355,13 @@ protected:
 private:
   static const unsigned int N = LIBMESH_DIM;
   Real _vals[N][N];
+
+  friend void dataStore<RankTwoTensor>(std::ostream & stream, RankTwoTensor & t, void * context);
+  friend void dataLoad<RankTwoTensor>(std::istream & stream, RankTwoTensor & t, void * context);
 };
+
+template<> void dataStore(std::ostream & stream, RankTwoTensor & t, void * context);
+template<> void dataLoad(std::istream & stream, RankTwoTensor & t, void * context);
 
 inline RankTwoTensor operator*(Real a, const RankTwoTensor & b) { return b * a; }
 

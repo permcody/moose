@@ -86,14 +86,14 @@ ComputeMultiPlasticityStress::initQpStatefulProperties()
 {
   ComputeStressBase::initQpStatefulProperties();
 
-  _stress_old[_qp] = _stress[_qp];
-  _elastic_strain_old[_qp] = _elastic_strain[_qp];
+  // _stress_old[_qp] = _stress[_qp];
+  //_elastic_strain_old[_qp] = _elastic_strain[_qp];
 
   _plastic_strain[_qp].zero();
-  _plastic_strain_old[_qp].zero();
+  //_plastic_strain_old[_qp].zero();
 
   _intnl[_qp].assign(_num_models, 0);
-  _intnl_old[_qp].assign(_num_models, 0);
+  //_intnl_old[_qp].assign(_num_models, 0);
 
   _yf[_qp].assign(_num_surfaces, 0);
 
@@ -103,7 +103,7 @@ ComputeMultiPlasticityStress::initQpStatefulProperties()
   _constraints_added[_qp] = 0;
 
   _n[_qp] = _n_input;
-  _n_old[_qp] = _n_input;
+  //_n_old[_qp] = _n_input;
 
   if (_fspb_debug == 2)
   {
@@ -170,7 +170,17 @@ ComputeMultiPlasticityStress::preReturnMap()
 
     // rotate the tensors to this frame
     _my_elasticity_tensor.rotate(_rot);
-    _stress_old[_qp].rotate(_rot);
+
+    std::cout << "stress size: " << _stress_old.size() << std::endl;
+    for (unsigned int i=0; i<_stress_old.size(); ++i)
+      _stress_old[i].print();
+
+    RankTwoTensor foo(_stress_old[_qp]);
+    foo.rotate(_rot);
+
+    _stress_old[_qp] = foo;
+
+    //    _stress_old[_qp].rotate(_rot);
     _plastic_strain_old[_qp].rotate(_rot);
     _my_strain_increment.rotate(_rot);
   }
