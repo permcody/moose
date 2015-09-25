@@ -35,6 +35,10 @@ ICEUpdater::ICEUpdater(const InputParameters & parameters) :
     AdvancedOutput<Output>(parameters),
     _noproxy(getParam<bool>("noproxy"))
 {
+  // All ICE updates should occur on the master process only
+  if (_communicator.rank() != 0)
+    return;
+
   // Create the iStream containing the initialization data for the Updater
   std::stringstream ss;
   ss << "item_id=" + getParam<std::string>("item_id") + "\n";
@@ -55,12 +59,18 @@ ICEUpdater::ICEUpdater(const InputParameters & parameters) :
 
 ICEUpdater::~ICEUpdater()
 {
+  if (_communicator.rank() != 0)
+    return;
+
   // Stop the ICEUpdater thread
   iceUpdater->stop();
 }
 
 void ICEUpdater::initialSetup()
 {
+  if (_communicator.rank() != 0)
+    return;
+
   // Call base class setup method
   AdvancedOutput<Output>::initialSetup();
 
@@ -79,6 +89,9 @@ void ICEUpdater::initialSetup()
 
 void ICEUpdater::outputPostprocessors()
 {
+  if (_communicator.rank() != 0)
+    return;
+
   // Get the list of Postprocessors
   const std::set<std::string> & pps = getPostprocessorOutput();
   for (std::set<std::string>::const_iterator it = pps.begin(); it != pps.end(); ++it)
