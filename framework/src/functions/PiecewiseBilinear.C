@@ -44,7 +44,7 @@ template<>
 InputParameters validParams<PiecewiseBilinear>()
 {
   InputParameters params = validParams<Function>();
-  params.addParam<std::string>("data_file", "File holding csv data for use with PiecewiseBilinear");
+  params.addParam<FileName>("data_file", "", "File holding csv data for use with PiecewiseBilinear");
   params.addParam<int>("axis", -1, "The axis used (0, 1, or 2 for x, y, or z).");
   params.addParam<int>("xaxis", -1, "The coordinate used for x-axis data (0, 1, or 2 for x, y, or z).");
   params.addParam<int>("yaxis", -1, "The coordinate used for y-axis data (0, 1, or 2 for x, y, or z).");
@@ -55,8 +55,8 @@ InputParameters validParams<PiecewiseBilinear>()
 
 PiecewiseBilinear::PiecewiseBilinear(const InputParameters & parameters) :
   Function(parameters),
-  _bilinear_interp( NULL ),
-  _data_file_name( isParamValid("data_file") ? getParam<std::string>("data_file") : ""),
+  _bilinear_interp(NULL),
+  _data_file_name(getParam<std::string>("data_file")),
   _axis(getParam<int>("axis")),
   _yaxis(getParam<int>("yaxis")),
   _xaxis(getParam<int>("xaxis")),
@@ -198,4 +198,3 @@ PiecewiseBilinear::parse( std::vector<Real> & x,
      mooseError("ERROR! Inconsistency in data read from '" + _data_file_name + "' for PiecewiseBilinear function.");
    }
 }
-

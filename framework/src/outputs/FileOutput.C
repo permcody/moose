@@ -24,7 +24,7 @@ InputParameters validParams<FileOutput>()
 {
   // Create InputParameters object for this stand-alone object
   InputParameters params = validParams<PetscOutput>();
-  params.addParam<std::string>("file_base", "The desired solution output name without an extension");
+  params.addParam<OutFileBase>("file_base", "The desired solution output name without an extension");
 
   // Add the padding option and list it as 'Advanced'
   params.addParam<unsigned int>("padding", 4, "The number of for extension suffix (e.g., out.e-s002)");
@@ -147,4 +147,3 @@ FileOutput::getFileNumber()
 {
   return _file_num;
 }
-
