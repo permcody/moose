@@ -22,6 +22,73 @@
 #include <algorithm>
 #include <limits>
 
+template <typename T>
+struct f_inserter_iterator
+  : std::iterator<std::output_iterator_tag, T>
+{
+  void operator=(FeatureFloodCount::BubbleData * b)
+    {
+    }
+
+  f_inserter_iterator operator++(int)
+    {
+      return f_inserter_iterator();
+    }
+
+  f_inserter_iterator& operator*() { return *this; }
+};
+
+
+
+namespace libMesh {
+namespace Parallel {
+// BufferType<> specializations to return a buffer datatype
+// to handle communication of Elems
+template <>
+struct BufferType<const FeatureFloodCount::BubbleData*> {
+  typedef largest_id_type type;
+};
+
+template <>
+struct BufferType<FeatureFloodCount::BubbleData> {
+  typedef largest_id_type type;
+};
+
+template <>
+unsigned int packed_size(const FeatureFloodCount::BubbleData *, std::vector<largest_id_type>::const_iterator in)
+{
+  std::cout << "In packed_size\n";
+
+  return 1;
+}
+
+template <>
+unsigned int packable_size (const FeatureFloodCount::BubbleData * b, const FeatureFloodCount * f)
+{
+  std::cout << "In packable_size\n";
+
+  return 1;
+}
+
+template <>
+void pack (const FeatureFloodCount::BubbleData * b, std::vector<largest_id_type> & data, const FeatureFloodCount * f)
+{
+  std::cout << "In pack\n";
+  data.push_back(9);
+}
+
+template <>
+void unpack(std::vector<largest_id_type>::const_iterator in,
+            FeatureFloodCount::BubbleData ** out,
+            FeatureFloodCount * f)
+{
+  std::cout << "In unpack\n";
+}
+
+}
+}
+
+
 template<>
 InputParameters validParams<FeatureFloodCount>()
 {
@@ -159,6 +226,51 @@ FeatureFloodCount::execute()
 void
 FeatureFloodCount::finalize()
 {
+  MeshBase & mesh = _mesh.getMesh();
+
+  std::set<dof_id_type> entity_ids;
+  entity_ids.insert(6);
+
+  BubbleData junk(entity_ids, 5);
+
+  std::set<const BubbleData *> foo;
+  foo.insert(&junk);
+
+  std::vector<const BubbleData *> bar;
+
+  _communicator.allgather_packed_range (this,
+                                        foo.begin(),
+                                        foo.end(),
+                                        f_inserter_iterator<BubbleData>());
+
+
+
+//  if (_app.n_processors() == 2)
+//  {
+//    if (processor_id() == 0)
+//      _communicator.send_packed_range(1, this, foo.begin(), foo.end());
+//    else
+//      _communicator.receive_packed_range(0, this, f_inserter_iterator<BubbleData>());
+//  }
+
+
+
+//  mesh.comm().send_packed_range (dest_pid_idx,
+//                                 &mesh,
+//                                 connected_nodes.begin(),
+//                                 connected_nodes.end(),
+//                                 send_requests[current_request++],
+//                                 element_neighbors_tag);
+//
+//  mesh.comm().send_packed_range (dest_pid_idx,
+//                                 &mesh,
+//                                 elements_to_send.begin(),
+//                                 elements_to_send.end(),
+//                                 send_requests[current_request++],
+//                                 element_neighbors_tag);
+//
+
+
   // Exchange data in parallel
   pack(_packed_data);
   _communicator.allgather(_packed_data, false);

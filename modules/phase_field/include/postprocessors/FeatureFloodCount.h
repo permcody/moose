@@ -63,7 +63,6 @@ public:
 
   inline bool isElemental() const { return _is_elemental; }
 
-protected:
   class BubbleData
   {
   public:
@@ -73,11 +72,15 @@ protected:
         _intersects_boundary(false)
     {}
 
+    void operator=(BubbleData *) {}
+
     std::set<dof_id_type> _entity_ids;
     std::set<dof_id_type> _periodic_nodes;
     unsigned int _var_idx;
     bool _intersects_boundary;
   };
+
+protected:
 
   /**
    * This method is used to populate any of the data structures used for storing field data (nodal or elemental).
