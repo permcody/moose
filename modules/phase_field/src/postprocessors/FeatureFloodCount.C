@@ -126,7 +126,7 @@ FeatureFloodCount::initialize()
   _all_bubble_volumes.clear();
 
   _bytes_used = 0;
-  
+
   _ghosted_entity_ids.clear();
 
   // Populate the global ghosted entity data structure
@@ -248,7 +248,7 @@ Real
 FeatureFloodCount::getElementalValue(dof_id_type /*element_id*/) const
 {
   mooseDoOnce(mooseWarning("Method not implemented"));
-  
+
   return 0;
 }
 
@@ -318,27 +318,53 @@ FeatureFloodCount::pack(std::vector<unsigned int> & packed_data)
    * the bubble_sets data structure for use in the mergeSets routine.
    */
   std::vector<std::set<dof_id_type> > local_data;
-  
+
+  std::vector<Point> min_points;
+  std::vector<Point> max_points;
+  std::vector<dof_id_type> min_feature_id;
+
+  MeshBase & mesh = _mesh.getMesh();
+
   for (unsigned int map_num = 0; map_num < _maps_size; ++map_num)
-  { 
+  {
     ghost_data.resize(_region_counts[map_num]);
     local_data.resize(_region_counts[map_num]);
+    min_points.resize(_region_counts[map_num],  std::numeric_limits<Real>::max());
+    max_points.resize(_region_counts[map_num], -std::numeric_limits<Real>::max());
+    min_feature_id.resize(_region_counts[map_num], std::numeric_limits<Real>::max());
+
     unsigned int ghost_counter = 0;
 
     std::map<dof_id_type, int>::const_iterator b_end = _bubble_maps[map_num].end();
     // Reorganize the data by values
     for (std::map<dof_id_type, int>::const_iterator b_it = _bubble_maps[map_num].begin(); b_it != b_end; ++b_it)
     {
+      // Local variables for clarity
+      dof_id_type entity_id = b_it->first;
+      int partial_feature_num = b_it->second;
+
       /**
        * Neighboring processors only need enough information to stitch together the regions
        * we'll only pack information that's on the processor boundaries.
        */
-      if (_ghosted_entity_ids.find(b_it->first) != _ghosted_entity_ids.end())        
+      if (_ghosted_entity_ids.find(entity_id) != _ghosted_entity_ids.end())
       {
-        ghost_data[(b_it->second)].insert(b_it->first);
+        ghost_data[partial_feature_num].insert(entity_id);
         ++ghost_counter;
       }
-      
+
+      // Now retrieve the location of this entity for determining the bounding box region
+      const Point & entity_point = _is_elemental ? mesh.elem(entity_id)->centroid() : mesh.node(entity_id);
+
+      for (unsigned int i = 0; i < mesh.spatial_dimension(); ++i)
+      {
+        min_points[partial_feature_num](i) = std::min(min_points[partial_feature_num](i), entity_point(i));
+        max_points[partial_feature_num](i) = std::max(max_points[partial_feature_num](i), entity_point(i));
+      }
+
+      // Finally save off the min entity id present in the feature to uniquely identify the feature regardless of n_procs
+      min_feature_id[partial_feature_num] = std::min(min_feature_id[partial_feature_num], entity_id);
+
       /**
        * However we still need to save all of the local data for use in merging
        * and field update routines.
@@ -364,7 +390,7 @@ FeatureFloodCount::pack(std::vector<unsigned int> & packed_data)
      * quite true when using periodic boundaries.
      */
 
-    
+
 
     /**
      * The size of the packed data structure should be the sum of all of the following:
@@ -378,6 +404,7 @@ FeatureFloodCount::pack(std::vector<unsigned int> & packed_data)
      * @verbatim
      * [ <i_nodes> <var_idx> <n_0> <n_1> ... <n_i> <j_nodes> <var_idx> <n_0> <n_1> ... <n_j> ]
      * @endverbatim
+     *
      */
 
     // Note the _region_counts[mar_num]*2 takes into account the number of nodes and the variable index for each region
@@ -390,9 +417,9 @@ FeatureFloodCount::pack(std::vector<unsigned int> & packed_data)
       // Skip over the empty sets
       if (ghost_data[i].empty())
         continue;
-      
+
       partial_packed_data.push_back(ghost_data[i].size());              // The number of nodes in the current region
-      
+
       if (_single_map_mode)
       {
         mooseAssert(i < _region_to_var_idx.size(), "Index out of bounds in FeatureFloodCounter");
@@ -400,12 +427,12 @@ FeatureFloodCount::pack(std::vector<unsigned int> & packed_data)
       }
       else
         partial_packed_data.push_back(map_num);                         // The variable owning this bubble
-      
+
       std::set<dof_id_type>::iterator end = ghost_data[i].end();
       for (std::set<dof_id_type>::iterator it = ghost_data[i].begin(); it != end; ++it)
         partial_packed_data.push_back(*it);                             // The individual entity ids
     }
-    
+
     packed_data.insert(packed_data.end(), partial_packed_data.begin(), partial_packed_data.end());
   }
 }
@@ -621,12 +648,12 @@ FeatureFloodCount::updateFieldInfo()
 {
   // This variable is only relevant in single map mode
   _region_to_var_idx.resize(_bubble_sets[0].size());
-  
+
   // Finally update the original bubble map with field data from the merged sets
   for (unsigned int map_num = 0; map_num < _maps_size; ++map_num)
   {
     _bubble_maps[map_num].clear();
-    
+
     unsigned int counter = 0;
     for (std::list<BubbleData>::iterator it1 = _bubble_sets[map_num].begin(); it1 != _bubble_sets[map_num].end(); ++it1)
     {
@@ -638,7 +665,7 @@ FeatureFloodCount::updateFieldInfo()
 //        if (_var_index_mode)
 //          _var_index_maps[map_num][*it2] = it1->_var_idx;
       }
-// 
+//
 //      if (_single_map_mode)
 //        _region_to_var_idx[counter] = it1->_var_idx;
       ++counter;
