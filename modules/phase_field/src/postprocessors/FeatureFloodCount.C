@@ -113,6 +113,7 @@ InputParameters validParams<FeatureFloodCount>()
   params.addParam<bool>("use_global_numbering", false, "Determine whether or not global numbers are used to label bubbles on multiple maps (default: false)");
   params.addParam<bool>("enable_var_coloring", false, "Instruct the UO to populate the variable index map.");
   params.addParam<bool>("use_less_than_threshold_comparison", true, "Controls whether bubbles are defined to be less than or greater than the threshold value.");
+  params.addParam<unsigned int>("halo_depth", 1, "The depth of the halo surrounding the feature.");
   params.addParam<FileName>("bubble_volume_file", "An optional file name where bubble volumes can be output.");
   params.addDeprecatedParam<bool>("track_memory_usage", false, "Track memory usage", "This parameter is no longer valid, please remove.");
   params.addParam<bool>("compute_boundary_intersecting_volume", false, "If true, also compute the (normalized) volume of bubbles which intersect the boundary");
@@ -137,6 +138,7 @@ FeatureFloodCount::FeatureFloodCount(const InputParameters & parameters) :
     _global_numbering(getParam<bool>("use_global_numbering")),
     _var_index_mode(getParam<bool>("enable_var_coloring")),
     _use_less_than_threshold_comparison(getParam<bool>("use_less_than_threshold_comparison")),
+    _halo_depth(getParam<unsigned int>("halo_depth")),
     _maps_size(_single_map_mode ? 1 : _vars.size()),
     _feature_count(0),
     _pbs(NULL),
@@ -222,7 +224,7 @@ FeatureFloodCount::execute()
     if (_is_elemental)
     {
       for (unsigned int var_num = 0; var_num < _vars.size(); ++var_num)
-        flood(current_elem, var_num, NULL /* Designates inactive feature */);
+        flood(current_elem, var_num, NULL /* Designates inactive feature */, _halo_depth);
     }
     else
     {
@@ -232,7 +234,7 @@ FeatureFloodCount::execute()
         const Node * current_node = current_elem->get_node(i);
 
         for (unsigned int var_num = 0; var_num < _vars.size(); ++var_num)
-          flood(current_node, var_num, NULL /* Designates inactive feature */);
+          flood(current_node, var_num, NULL /* Designates inactive feature */, _halo_depth);
       }
     }
   }
@@ -1077,64 +1079,84 @@ FeatureFloodCount::updateFieldInfo()
 }
 
 void
-FeatureFloodCount::flood(const DofObject * dof_object, int current_idx, FeatureData * feature)
+FeatureFloodCount::flood(const DofObject * dof_object, int current_idx, FeatureData * feature, unsigned int halo_depth)
 {
   if (dof_object == NULL)
     return;
 
   // Retrieve the id of the current entity
-  dof_id_type entity_id = dof_object->id();
+  const dof_id_type entity_id = dof_object->id();
 
-  // Has this entity already been marked? - if so move along
-  if (_entities_visited[current_idx].find(entity_id) != _entities_visited[current_idx].end())
-    return;
+  const bool previously_visited = _entities_visited[current_idx].find(entity_id) != _entities_visited[current_idx].end();
 
-  // Mark this entity as visited
-  _entities_visited[current_idx][entity_id] = true;
-
-  // Determine which threshold to use based on whether this is an established region
-  Real threshold = feature ? _step_connecting_threshold : _step_threshold;
-
-  // Get the value of the current variable for the current entity
-  Number entity_value;
-  if (_is_elemental)
-  {
-    const Elem * elem = static_cast<const Elem *>(dof_object);
-    std::vector<Point> centroid(1, elem->centroid());
-    _fe_problem.reinitElemPhys(elem, centroid, 0);
-    entity_value = _vars[current_idx]->sln()[0];
-  }
-  else
-    entity_value = _vars[current_idx]->getNodalValue(*static_cast<const Node *>(dof_object));
-
-  // This node hasn't been marked, is it in a feature?  We must respect
-  // the user-selected value of _use_less_than_threshold_comparison.
-  if (_use_less_than_threshold_comparison && (entity_value < threshold))
-    return;
-
-  if (!_use_less_than_threshold_comparison && (entity_value > threshold))
+  /**
+   * If the current halo depth is 2 or more, we can't return early here.
+   * At least one more level of recursion must be reached. A halo
+   * level of 1 is handle by just marking neighbors so we can just
+   * return if we don't have an active feature and the current halo level
+   * is sufficiently low.
+   */
+  if ((!feature && previously_visited) || (feature && halo_depth == 0))
     return;
 
   /**
-   * If we reach this point (i.e. we haven't returned early from this routine),
-   * we've found a new mesh entity that's part of a feature.
+   * Since we might visit this entity again during a halo search, we'll
+   * avoid doing some of the expensive work like getting variable values
+   * and comparing them. This also has the implication that the
+   * "feature_found" variable will always be false if we've visited
+   * this entity previously. This ensures that the recursion will
+   * stop since the halo_depth will be forced to decrease.
    */
+  bool feature_found = false;
   unsigned int map_num = _single_map_mode ? 0 : current_idx;
   processor_id_type rank = processor_id();
 
-  // New Feature (we need to create it and add it to our data structure)
-  if (!feature)
-    _partial_feature_sets[rank][map_num].push_back(FeatureData(current_idx));
+  if (!previously_visited)
+  {
+    // Mark this entity as visited
+    _entities_visited[current_idx][entity_id] = true;
+
+    // Determine which threshold to use based on whether this is an established region
+    Real threshold = feature ? _step_connecting_threshold : _step_threshold;
+
+    // Get the value of the current variable for the current entity
+    Number entity_value;
+    if (_is_elemental)
+    {
+      const Elem * elem = static_cast<const Elem *>(dof_object);
+      std::vector<Point> centroid(1, elem->centroid());
+      _fe_problem.reinitElemPhys(elem, centroid, 0);
+      entity_value = _vars[current_idx]->sln()[0];
+    }
+    else
+      entity_value = _vars[current_idx]->getNodalValue(*static_cast<const Node *>(dof_object));
+
+    // See if this entity is actually within a feature
+    if ((_use_less_than_threshold_comparison && (entity_value > threshold)) ||
+        (!_use_less_than_threshold_comparison && (entity_value < threshold)))
+      feature_found = true;
+
+    // No active feature (not working on a halo) and no feature found
+    if (!feature && !feature_found)
+      return;
+
+    // New Feature (we need to create it and add it to our data structure)
+    if (!feature && feature_found)
+      _partial_feature_sets[rank][map_num].push_back(FeatureData(current_idx));
+  }
+
+  mooseAssert(!_partial_feature_sets[rank][map_num].empty(), "Error in flood() routine");
 
   // Get a handle to the feature we will update (always the last feature in the data structure)
   feature = &_partial_feature_sets[rank][map_num].back();
 
   // Insert the current entity into the local ids map
-  feature->_local_ids.insert(entity_id);
+  if (feature_found)
+    feature->_local_ids.insert(entity_id);
 
   /**
    * Now it's time to start looking around to see what neighbors might
-   * also be part of this feature.
+   * also be part of this feature or halo.
    */
   if (_is_elemental)
   {
@@ -1159,7 +1181,7 @@ FeatureFloodCount::flood(const DofObject * dof_object, int current_idx, FeatureD
       // Only recurse on elems this processor can see
       if (neighbor && neighbor->is_semilocal(my_proc_id))
       {
-        if (neighbor->processor_id() != my_proc_id)
+        if (feature_found && neighbor->processor_id() != my_proc_id)
           feature->_ghosted_ids.insert(elem->id());
 
         /**
@@ -1167,15 +1189,15 @@ FeatureFloodCount::flood(const DofObject * dof_object, int current_idx, FeatureD
          * entities may or may not end up being part of the feature.
          * We will not update the _entities_visited data structure
          * here.
-         *
-         * TODO: We may need to mark point neighbors here. It's possible that by
-         * only looking at edge neighbors we could be creating an un-handled
-         * corner case (literally) for intersection in the grain tracker.
          */
         feature->_halo_ids.insert(neighbor->id());
 
-        // recurse
-        flood(neighbor, current_idx, feature);
+        /**
+         * Recurse on neighbors: The neighbor, current_idx and halo values are passed down.
+         * If we are in a feature than we aren't yet into the halo so we'll leave that value
+         * alone, otherwise we'll subtract one from that and continue.
+         */
+        flood(neighbor, current_idx, feature, feature_found ? halo_depth : halo_depth - 1);
       }
     }
   }
@@ -1193,14 +1215,14 @@ FeatureFloodCount::flood(const DofObject * dof_object, int current_idx, FeatureD
       // Only recurse on nodes this processor can see
       if (_mesh.isSemiLocal(const_cast<Node *>(neighbor_node)))
       {
-        if (neighbor_node->processor_id() != my_proc_id)
+        if (feature_found && neighbor_node->processor_id() != my_proc_id)
           feature->_ghosted_ids.insert(neighbor_node->id());
 
         // Premark Halo values (See description above)
         feature->_halo_ids.insert(neighbor_node->id());
 
-        // recurse
-        flood(neighbors[i], current_idx, feature);
+        // Recurse (see description ablove)
+        flood(neighbors[i], current_idx, feature, feature_found ? halo_depth : halo_depth - 1);
       }
     }
   }

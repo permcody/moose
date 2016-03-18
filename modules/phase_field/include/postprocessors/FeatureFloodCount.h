@@ -167,8 +167,9 @@ protected:
    * are above the supplied threshold. If feature is NULL, we are exploring
    * for a new region to mark, otherwise we are in the recursive calls
    * currently marking a region.
+   * TODO: Update doco
    */
-  void flood(const DofObject * dof_object, int current_idx, FeatureData * feature);
+  void flood(const DofObject * dof_object, int current_idx, FeatureData * feature, unsigned int halo_depth);
 
   /**
    * This routine uses the local flooded data to build up the local feature data structures (_feature_sets).
@@ -295,6 +296,9 @@ protected:
    * instead.
    */
   const bool _use_less_than_threshold_comparison;
+
+  // TODO: doco
+  const unsigned int _halo_depth;
 
   /// Convienence variable holding the size of all the datastructures size by the number of maps
   const unsigned int _maps_size;
