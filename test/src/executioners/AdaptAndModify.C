@@ -30,7 +30,7 @@ AdaptAndModify::AdaptAndModify(const InputParameters & parameters) :
     _adapt_cycles(parameters.get<unsigned int>("adapt_cycles"))
 {}
 
-void
+bool
 AdaptAndModify::incrementStepOrReject()
 {
   if (_last_solve_converged)
@@ -47,6 +47,9 @@ AdaptAndModify::incrementStepOrReject()
   }
 
   _first = false;
+
+  return false;
+
 }
 
 void
