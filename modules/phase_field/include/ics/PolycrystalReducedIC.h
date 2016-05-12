@@ -45,6 +45,10 @@ public:
 
   virtual void initialSetup();
 
+  short assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors);
+
+  short assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors, unsigned int grain, unsigned int assigned);
+
   MooseMesh & _mesh;
 
   /// mesh dimension

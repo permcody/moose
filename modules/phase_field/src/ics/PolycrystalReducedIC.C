@@ -52,9 +52,9 @@ PolycrystalReducedIC::initialSetup()
   if (_op_num > _grain_num)
      mooseError("ERROR in PolycrystalReducedIC: Number of order parameters (op_num) can't be larger than the number of grains (grain_num)");
 
-  if (_cody_test)
-    if (_op_num != 5 || _grain_num != 10)
-      mooseError("ERROR in PolycrystalReducedIC: Numbers aren't correct for Cody's test.");
+//  if (_cody_test)
+//    if (_op_num != 5 || _grain_num != 10)
+//      mooseError("ERROR in PolycrystalReducedIC: Numbers aren't correct for Cody's test.");
 
   MooseRandom::seed(_rand_seed);
 
@@ -65,55 +65,175 @@ PolycrystalReducedIC::initialSetup()
 
   std::vector<Point> holder;
 
-  if (_cody_test)
-  {
-    holder.resize(_grain_num);
-    holder[0] = Point(0.2, 0.99, 0.0);
-    holder[1] = Point(0.5, 0.99, 0.0);
-    holder[2] = Point(0.8, 0.99, 0.0);
+//  if (_cody_test)
+//  {
+//    holder.resize(_grain_num);
+//    holder[0] = Point(0.2, 0.99, 0.0);
+//    holder[1] = Point(0.5, 0.99, 0.0);
+//    holder[2] = Point(0.8, 0.99, 0.0);
+//
+//    holder[3] = Point(0.2, 0.5, 0.0);
+//    holder[4] = Point(0.5, 0.5, 0.0);
+//    holder[5] = Point(0.8, 0.5, 0.0);
+//
+//    holder[6] = Point(0.1, 0.1, 0.0);
+//    holder[7] = Point(0.5, 0.05, 0.0);
+//    holder[8] = Point(0.9, 0.1, 0.0);
+//
+//    holder[9] = Point(0.5, 0.1, 0.0);
+//  }
 
-    holder[3] = Point(0.2, 0.5, 0.0);
-    holder[4] = Point(0.5, 0.5, 0.0);
-    holder[5] = Point(0.8, 0.5, 0.0);
-
-    holder[6] = Point(0.1, 0.1, 0.0);
-    holder[7] = Point(0.5, 0.05, 0.0);
-    holder[8] = Point(0.9, 0.1, 0.0);
-
-    holder[9] = Point(0.5, 0.1, 0.0);
-  }
-
-  //Assign actual center point positions
+  // Assign actual center point positions
   for (unsigned int grain = 0; grain < _grain_num; grain++)
   {
     for (unsigned int i = 0; i < LIBMESH_DIM; i++)
     {
-      if (_cody_test)
-        _centerpoints[grain](i) = _bottom_left(i) + _range(i)*holder[grain](i);
-      else
+ //     if (_cody_test)
+ //       _centerpoints[grain](i) = _bottom_left(i) + _range(i)*holder[grain](i);
+ //     else
         _centerpoints[grain](i) = _bottom_left(i) + _range(i)*MooseRandom::rand();
     }
     if (_columnar_3D)
         _centerpoints[grain](2) = _bottom_left(2) + _range(2)*0.5;
   }
 
-  //Assign grains to each order parameter
-  if (_cody_test)
+  // Build node to elem map
+  std::vector< std::vector< const Elem * > > nodes_to_elem_map;
+  MeshTools::build_nodes_to_elem_map(_mesh.getMesh(), nodes_to_elem_map);
+
+  // Build node to grain Map
+  std::map<dof_id_type, unsigned int> node_to_grain;
+  const MeshBase::node_iterator end = _mesh.getMesh().active_nodes_end();
+  for (MeshBase::node_iterator nl = _mesh.getMesh().active_nodes_begin(); nl != end; ++nl)
   {
-    _assigned_op[0] = 0.0;
-    _assigned_op[1] = 0.0;
-    _assigned_op[2] = 0.0;
-    _assigned_op[3] = 1.0;
-    _assigned_op[4] = 1.0;
-    _assigned_op[5] = 1.0;
-    _assigned_op[6] = 2.0;
-    _assigned_op[7] = 0.0;
-    _assigned_op[8] = 2.0;
-    _assigned_op[9] = 4.0;
+    unsigned int grain_index = PolycrystalICTools::assignPointToGrain(**nl, _centerpoints, _mesh, _var, _range.norm());
+
+    node_to_grain.insert(std::pair<dof_id_type, unsigned int>((*nl)->id(), grain_index));
   }
-  else
-    //Assign grains to specific order parameters in a way that maximizes the distance
-    _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints, _op_num, _mesh, _var);
+
+//  for (std::map<dof_id_type, unsigned int>::const_iterator it = node_to_grain.begin(); it != node_to_grain.end(); ++it)
+//    std::cout << it->first << ": " << it->second << '\n';
+
+  // Build neighbor graph
+  std::vector<std::vector<bool> > adjacency_matrix(_grain_num);
+  for (unsigned int i = 0; i < _grain_num; ++i)
+    adjacency_matrix[i].resize(_grain_num, false);
+
+  for (MeshBase::node_iterator nl = _mesh.getMesh().active_nodes_begin(); nl != end; ++nl)
+  {
+    const Node * node = *nl;
+    std::map<dof_id_type, unsigned int>::const_iterator grain_it = node_to_grain.find(node->id());
+    mooseAssert(grain_it != node_to_grain.end(), "Node not found in map");
+    unsigned int my_grain = grain_it->second;
+
+    std::vector<const Node *> nodal_neighbors;
+    MeshTools::find_nodal_neighbors(_mesh.getMesh(), *node, nodes_to_elem_map, nodal_neighbors);
+
+    // Loop over all nodal neighbors
+    for (unsigned int i = 0; i < nodal_neighbors.size(); ++i)
+    {
+      const Node * neighbor_node = nodal_neighbors[i];
+      std::map<dof_id_type, unsigned int>::const_iterator grain_it2 = node_to_grain.find(neighbor_node->id());
+      mooseAssert(grain_it2 != node_to_grain.end(), "Node not found in map");
+      unsigned int their_grain = grain_it2->second;
+
+      if (my_grain != their_grain)
+        adjacency_matrix[my_grain][their_grain] = true;
+
+    }
+  }
+
+  std::cout << "Output graph edges:\n";
+  for (unsigned int i = 0; i < adjacency_matrix.size(); ++i)
+  {
+    for (unsigned int j = 0; j < adjacency_matrix.size(); ++j)
+      std::cout << adjacency_matrix[i][j] << ' ';
+    std::cout << '\n';
+  }
+
+  // Assign colors (op vars)
+  std::vector<int> op_var_num(_grain_num, -1);
+  short status = assignColors(adjacency_matrix, op_var_num);
+
+  if (status == 0)
+    for (unsigned int i = 0; i < _grain_num; ++i)
+      std::cout << i << ": " << op_var_num[i] << '\n';
+
+
+ // //Assign grains to each order parameter
+ // if (_cody_test)
+ // {
+ //   _assigned_op[0] = 0.0;
+ //   _assigned_op[1] = 0.0;
+ //   _assigned_op[2] = 0.0;
+ //   _assigned_op[3] = 1.0;
+ //   _assigned_op[4] = 1.0;
+ //   _assigned_op[5] = 1.0;
+ //   _assigned_op[6] = 2.0;
+ //   _assigned_op[7] = 0.0;
+ //   _assigned_op[8] = 2.0;
+ //   _assigned_op[9] = 4.0;
+ // }
+ // else
+
+ //Assign grains to specific order parameters in a way that maximizes the distance
+  _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints, _op_num, _mesh, _var);
+
+}
+
+short
+PolycrystalReducedIC::assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors)
+{
+  // Start by assigning grain zero the first color
+  short status = -1;
+
+  colors[0] = 0;
+  for (unsigned int j = 0; j < _grain_num && status; ++j)
+    if (adjacency_matrix[0][j])
+      status = assignColorHelper(adjacency_matrix, colors, j, 1);
+
+  return status;
+}
+
+short
+PolycrystalReducedIC::assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors, unsigned int grain, unsigned int assigned)
+{
+  short status = -1;
+
+  for (unsigned int my_color = 0; my_color < _op_num && status; ++my_color)
+  {
+    // Make sure no neighbors have this color
+    bool conflicting_color = false;
+    for (unsigned int neighbor_idx = 0; neighbor_idx < _grain_num; ++neighbor_idx)
+      if (adjacency_matrix[grain][neighbor_idx] && colors[neighbor_idx] == my_color)
+      {
+        conflicting_color = true;
+        break;
+      }
+
+    if (conflicting_color)
+      continue;
+
+    // Assign a color
+    colors[grain] = my_color;
+
+    // Are we done?
+    if (assigned + 1 == _grain_num)
+      return 0;
+
+    // Find an uncolored neighbor and recurse
+    for (unsigned int neighbor_idx = 0; neighbor_idx < _grain_num && status; ++neighbor_idx)
+      if (adjacency_matrix[grain][neighbor_idx] && colors[neighbor_idx] == -1)
+      {
+        status = assignColorHelper(adjacency_matrix, colors, neighbor_idx, assigned+1);
+        if (status == 0)
+          return 0;
+      }
+
+    colors[grain] = -1;
+  }
+
+  return -1;
 }
 
 Real

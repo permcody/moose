@@ -9,7 +9,7 @@
 #include "MooseMesh.h"
 
 std::vector<Real>
-PolycrystalICTools::assignPointsToVariables(const std::vector<Point> centerpoints, const Real op_num, const MooseMesh & mesh, const MooseVariable & var)
+PolycrystalICTools::assignPointsToVariables(const std::vector<Point> & centerpoints, const Real op_num, const MooseMesh & mesh, const MooseVariable & var)
 {
   Real grain_num = centerpoints.size();
 
@@ -60,7 +60,7 @@ PolycrystalICTools::assignPointsToVariables(const std::vector<Point> centerpoint
 }
 
 unsigned int
-PolycrystalICTools::assignPointToGrain(const Point & p, const std::vector<Point> centerpoints, const MooseMesh & mesh, const MooseVariable & var, const Real maxsize)
+PolycrystalICTools::assignPointToGrain(const Point & p, const std::vector<Point> & centerpoints, const MooseMesh & mesh, const MooseVariable & var, const Real maxsize)
 {
   unsigned int grain_num = centerpoints.size();
 
@@ -83,4 +83,3 @@ PolycrystalICTools::assignPointToGrain(const Point & p, const std::vector<Point>
 
   return min_index;
 }
-
