@@ -45,6 +45,7 @@ public:
 
   virtual void initialSetup();
 
+protected:
   short assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors);
 
   short assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors, unsigned int grain, unsigned int assigned);
@@ -71,7 +72,7 @@ public:
   Point _range;
 
   std::vector<Point> _centerpoints;
-  std::vector<Real> _assigned_op;
+  std::vector<unsigned int> _assigned_op;
 };
 
 #endif //POLYCRYSTALREDUCEDIC_H

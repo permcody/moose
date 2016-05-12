@@ -13,7 +13,7 @@
 
 namespace PolycrystalICTools
 {
-std::vector<Real>
+std::vector<unsigned int>
 assignPointsToVariables(const std::vector<Point> & centerpoints,
                         const Real op_num,
                         const MooseMesh & mesh,
