@@ -46,9 +46,9 @@ public:
   virtual void initialSetup();
 
 protected:
-  short assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors);
+  short assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<unsigned int> & colors);
 
-  short assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors, unsigned int grain, unsigned int assigned);
+  short assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<unsigned int> & colors, unsigned int grain, unsigned int assigned);
 
   MooseMesh & _mesh;
 
@@ -70,6 +70,8 @@ protected:
   Point _bottom_left;
   Point _top_right;
   Point _range;
+
+  unsigned int _max;
 
   std::vector<Point> _centerpoints;
   std::vector<unsigned int> _assigned_op;

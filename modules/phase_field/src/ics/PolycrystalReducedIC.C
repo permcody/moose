@@ -10,6 +10,8 @@
 #include "MooseRandom.h"
 #include "MooseMesh.h"
 
+const unsigned int INVALID_OP = std::numeric_limits<unsigned int>::max();
+
 template<>
 InputParameters validParams<PolycrystalReducedIC>()
 {
@@ -33,7 +35,8 @@ PolycrystalReducedIC::PolycrystalReducedIC(const InputParameters & parameters) :
     _grain_num(getParam<unsigned int>("grain_num")),
     _op_index(getParam<unsigned int>("op_index")),
     _rand_seed(getParam<unsigned int>("rand_seed")),
-    _columnar_3D(getParam<bool>("columnar_3D"))
+    _columnar_3D(getParam<bool>("columnar_3D")),
+    _max(0)
 {
 }
 
@@ -55,7 +58,7 @@ PolycrystalReducedIC::initialSetup()
 
   //Randomly generate the centers of the individual grains represented by the Voronoi tesselation
   _centerpoints.resize(_grain_num);
-  _assigned_op.resize(_grain_num);
+  _assigned_op.resize(_grain_num, INVALID_OP);
   std::vector<Real> distances(_grain_num);
 
   //Assign actual center point positions
@@ -122,19 +125,18 @@ PolycrystalReducedIC::initialSetup()
   }
 
   // Assign colors (op vars)
-  std::vector<int> op_var_num(_grain_num, -1);
-  short status = assignColors(adjacency_matrix, op_var_num);
+  short status = assignColors(adjacency_matrix, _assigned_op);
 
-  if (status == 0)
-    for (unsigned int i = 0; i < _grain_num; ++i)
-      std::cout << i << ": " << op_var_num[i] << '\n';
+//  if (status == 0)
+  for (unsigned int i = 0; i < _grain_num; ++i)
+    std::cout << i << ": " << _assigned_op[i] << '\n';
 
   //Assign grains to specific order parameters in a way that maximizes the distance
-  _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints, _op_num, _mesh, _var);
+//  _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints, _op_num, _mesh, _var);
 }
 
 short
-PolycrystalReducedIC::assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors)
+PolycrystalReducedIC::assignColors(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<unsigned int> & colors)
 {
   // Start by assigning grain zero the first color
   short status = -1;
@@ -148,12 +150,21 @@ PolycrystalReducedIC::assignColors(const std::vector<std::vector<bool> > & adjac
 }
 
 short
-PolycrystalReducedIC::assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<int> & colors, unsigned int grain, unsigned int assigned)
+PolycrystalReducedIC::assignColorHelper(const std::vector<std::vector<bool> > & adjacency_matrix, std::vector<unsigned int> & colors, unsigned int grain, unsigned int assigned)
 {
   short status = -1;
 
-  for (unsigned int my_color = 0; my_color < _op_num && status; ++my_color)
+  if (assigned > _max)
   {
+    _max = assigned;
+    std::cout << "New Max: " << _max << '\n';
+  }
+
+  for (unsigned int color_idx = 0; color_idx < _op_num && status; ++color_idx)
+  {
+    // Let's try to distribute colors a bit
+    unsigned int my_color = (color_idx + assigned) % _op_num;
+
     // Make sure no neighbors have this color
     bool conflicting_color = false;
     for (unsigned int neighbor_idx = 0; neighbor_idx < _grain_num; ++neighbor_idx)
@@ -175,14 +186,14 @@ PolycrystalReducedIC::assignColorHelper(const std::vector<std::vector<bool> > & 
 
     // Find an uncolored neighbor and recurse
     for (unsigned int neighbor_idx = 0; neighbor_idx < _grain_num && status; ++neighbor_idx)
-      if (adjacency_matrix[grain][neighbor_idx] && colors[neighbor_idx] == -1)
+      if (adjacency_matrix[grain][neighbor_idx] && colors[neighbor_idx] == INVALID_OP)
       {
         status = assignColorHelper(adjacency_matrix, colors, neighbor_idx, assigned+1);
         if (status == 0)
           return 0;
       }
 
-    colors[grain] = -1;
+    colors[grain] = INVALID_OP;
   }
 
   return -1;
