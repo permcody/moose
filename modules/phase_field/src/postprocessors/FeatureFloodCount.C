@@ -186,6 +186,17 @@ FeatureFloodCount::initialize()
 
   // Reset the feature count
   _feature_count = 0;
+
+  // build semilocal element list
+  if (_is_elemental)
+  {
+    _semilocal_elem_list.clear();
+    MeshBase::const_element_iterator       el  = _mesh.getMesh().semilocal_elements_begin();
+    const MeshBase::const_element_iterator end = _mesh.getMesh().semilocal_elements_end();
+    for (; el != end; ++el)
+      if ((*el)->active())
+        _semilocal_elem_list.insert(*el);
+  }
 }
 
 void
@@ -745,7 +756,7 @@ FeatureFloodCount::visitElementalNeighbors(const Elem * elem, int current_idx, F
     processor_id_type my_proc_id = processor_id();
 
     // Only recurse on elems this processor can see
-    if (neighbor && neighbor->is_semilocal(my_proc_id))
+    if (neighbor && _semilocal_elem_list.find(neighbor) != _semilocal_elem_list.end())
     {
       if (neighbor->processor_id() != my_proc_id)
         feature->_ghosted_ids.insert(elem->id());
