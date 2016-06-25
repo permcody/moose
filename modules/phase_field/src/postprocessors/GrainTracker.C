@@ -837,8 +837,12 @@ GrainTracker::updateFieldInfo()
   for (auto map_num = decltype(_maps_size)(0); map_num < _maps_size; ++map_num)
     _feature_maps[map_num].clear();
 
-  std::map<unsigned int, Real> tmp_map;
+  std::map<dof_id_type, Real> entity_max;
+  std::map<dof_id_type, Real> entity_volumes;
+
   MeshBase & mesh = _mesh.getMesh();
+
+  auto my_processor_id = processor_id();
 
   for (const auto & grain_pair : _unique_grains)
   {
@@ -855,26 +859,50 @@ GrainTracker::updateFieldInfo()
       if (_is_elemental)
       {
         const Elem * elem = mesh.elem(entity);
+        if (elem->processor_id() != my_processor_id) // Only consider local ids
+          continue;
+
         std::vector<Point> centroid(1, elem->centroid());
         _fe_problem.reinitElemPhys(elem, centroid, 0);
         entity_value = _vars[curr_var]->sln()[0];
+        entity_volume[entity] = _assembly.elemVolume();
       }
       else
       {
         Node & node = mesh.node(entity);
+        if (node.processor_id() != my_processor_id) // Only consider local ids
+          continue;
+
         entity_value = _vars[curr_var]->getNodalValue(node);
       }
 
-      if (tmp_map.find(entity) == tmp_map.end() || entity_value > tmp_map[entity])
+      if (entity_max.find(entity) == entity_max.end() || entity_value > entity_max[entity])
       {
-        // TODO: Add an option for EBSD Reader
         _feature_maps[map_idx][entity] = _ebsd_reader ? _unique_grain_to_ebsd_num[grain_pair.first] : grain_pair.first;
         if (_var_index_mode)
           _var_index_maps[map_idx][entity] = grain_pair.second._var_idx;
 
-        tmp_map[entity] = entity_value;
+        entity_max[entity] = entity_value;
       }
     }
+
+    // Vector for parallel summation of grain volumes
+    std::vector<Real> volumes(_unique_grains.size(), 0.0);
+
+    // Now that we've reconstructed a grain map, we can calculate volumes, centroids, centers of mass, etc.
+    for (auto map_num = decltype(_maps_size)(0); map_num < _maps_size; ++map_num)
+      for (const auto & entity_pair : _feature_maps[map_num])
+      {
+        auto entity_id = entity_pair.first;
+        auto grain_id = entity_pair.second;
+
+        volumes[grain_id] += entity_volumes[entity_id];
+      }
+    _communicator.sum(volumes);
+
+    for (const auto volume : volumes)
+      std::cout << volume << '\n';
+
     for (auto entity : grain_pair.second._halo_ids)
       _halo_ids[grain_pair.second._var_idx][entity] += grain_pair.second._var_idx;
 
