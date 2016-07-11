@@ -865,7 +865,7 @@ GrainTracker::updateFieldInfo()
         std::vector<Point> centroid(1, elem->centroid());
         _fe_problem.reinitElemPhys(elem, centroid, 0);
         entity_value = _vars[curr_var]->sln()[0];
-        entity_volume[entity] = _assembly.elemVolume();
+        entity_volumes[entity] = _assembly.elemVolume();
       }
       else
       {
