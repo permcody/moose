@@ -129,10 +129,10 @@ public:
   FEProblem(const InputParameters & parameters);
   virtual ~FEProblem();
 
-  virtual EquationSystems & es() { return _eq; }
-  virtual MooseMesh & mesh() { return _mesh; }
+  virtual EquationSystems & es() override { return _eq; }
+  virtual MooseMesh & mesh() override { return _mesh; }
 
-  virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid);
+  virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid) override;
   virtual void setCoordSystem(const std::vector<SubdomainName> & blocks, const MultiMooseEnum & coord_sys);
   void setAxisymmetricCoordAxis(const MooseEnum & rz_coord_axis);
 
@@ -305,7 +305,7 @@ public:
    */
   virtual void useFECache(bool fe_cache);
 
-  virtual void init();
+  virtual void init() override;
   virtual void solve();
 
   /**

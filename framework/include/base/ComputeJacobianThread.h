@@ -38,17 +38,17 @@ public:
 
   virtual ~ComputeJacobianThread();
 
-  virtual void subdomainChanged();
-  virtual void onElement(const Elem *elem);
-  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id);
-  virtual void onInternalSide(const Elem *elem, unsigned int side);
-  virtual void onInterface(const Elem *elem, unsigned int side, BoundaryID bnd_id);
-  virtual void postElement(const Elem * /*elem*/);
-  virtual void post();
+protected:
+  virtual void subdomainChanged() override;
+  virtual void onElement(const Elem *elem) override;
+  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id) override;
+  virtual void onInternalSide(const Elem *elem, unsigned int side) override;
+  virtual void onInterface(const Elem *elem, unsigned int side, BoundaryID bnd_id) override;
+  virtual void postElement(const Elem * /*elem*/) override;
+  virtual void post() override;
 
   void join(const ComputeJacobianThread & /*y*/);
 
-protected:
   SparseMatrix<Number> & _jacobian;
   NonlinearSystem & _sys;
 
@@ -66,10 +66,10 @@ protected:
   // Reference to Kernel storage structure
   const KernelWarehouse & _kernels;
 
-  virtual void computeJacobian();
-  virtual void computeFaceJacobian(BoundaryID bnd_id);
-  virtual void computeInternalFaceJacobian(const Elem * neighbor);
-  virtual void computeInternalInterFaceJacobian(BoundaryID bnd_id);
+  virtual void computeJacobian() override;
+  virtual void computeFaceJacobian(BoundaryID bnd_id) override;
+  virtual void computeInternalFaceJacobian(const Elem * neighbor) override;
+  virtual void computeInternalInterFaceJacobian(BoundaryID bnd_id) override;
 };
 
 #endif //COMPUTEJACOBIANTHREAD_H

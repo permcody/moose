@@ -49,6 +49,7 @@ class Adaptivity : public ConsoleStreamInterface
 {
 public:
   Adaptivity(FEProblem & subproblem);
+
   virtual ~Adaptivity();
 
   /**

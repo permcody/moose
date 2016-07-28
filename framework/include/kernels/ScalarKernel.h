@@ -67,7 +67,7 @@ public:
    * Use this to enable/disable the constraint
    * @return true if the constrain is active
    */
-  virtual bool isActive();
+  virtual bool isActive() override;
 
 protected:
   SubProblem & _subproblem;

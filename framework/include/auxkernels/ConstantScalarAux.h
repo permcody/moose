@@ -29,10 +29,9 @@ class ConstantScalarAux : public AuxScalarKernel
 {
 public:
   ConstantScalarAux(const InputParameters & parameters);
-  virtual ~ConstantScalarAux();
 
 protected:
-  virtual Real computeValue();
+  virtual Real computeValue() overide;
 
   const Real & _value;
 };

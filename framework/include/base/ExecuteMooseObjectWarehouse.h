@@ -39,15 +39,10 @@ public:
   ExecuteMooseObjectWarehouse(bool threaded = true);
 
   /**
-   * Destructor.
-   */
-  virtual ~ExecuteMooseObjectWarehouse();
-
-  /**
    * Adds an object to the storage structure.
    * @param object A shared pointer to the object being added
    */
-  virtual void addObject(MooseSharedPointer<T> object, THREAD_ID tid = 0);
+  virtual void addObject(MooseSharedPointer<T> object, THREAD_ID tid = 0) override;
 
   ///@{
   /**
@@ -69,7 +64,7 @@ public:
   /**
    * Updates the active objects storage.
    */
-  virtual void updateActive(THREAD_ID tid = 0);
+  virtual void updateActive(THREAD_ID tid = 0) override;
 
   ///@{
   /**

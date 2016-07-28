@@ -26,11 +26,11 @@ public:
   // Splitting Constructor
   ComputeNodalAuxBcsThread(ComputeNodalAuxBcsThread & x, Threads::split split);
 
-  virtual void onNode(ConstBndNodeRange::const_iterator & node_it);
+protected:
+  virtual void onNode(ConstBndNodeRange::const_iterator & node_it) override;
 
   void join(const ComputeNodalAuxBcsThread & /*y*/);
 
-protected:
   AuxiliarySystem & _aux_sys;
 
   /// Storage object containing active AuxKernel objects

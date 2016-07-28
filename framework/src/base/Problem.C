@@ -32,7 +32,3 @@ Problem::Problem(const InputParameters & parameters) :
     _termination_requested(false)
 {
 }
-
-Problem::~Problem()
-{
-}

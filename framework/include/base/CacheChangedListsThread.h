@@ -25,9 +25,9 @@ class CacheChangedListsThread : public ThreadedElementLoopBase<ConstElemRange>
 public:
   CacheChangedListsThread(MooseMesh & mesh);
   CacheChangedListsThread(CacheChangedListsThread & x, Threads::split split);
-  virtual ~CacheChangedListsThread();
 
-  virtual void onElement(const Elem *elem);
+protected:
+  virtual void onElement(const Elem *elem) override;
 
   void join(const CacheChangedListsThread & y);
 

@@ -42,11 +42,9 @@ public:
 
   ThreadedElementLoop(ThreadedElementLoop & x, Threads::split split);
 
-  virtual ~ThreadedElementLoop();
+  virtual void caughtMooseException(MooseException & e) override;
 
-  virtual void caughtMooseException(MooseException & e);
-
-  virtual bool keepGoing() { return !_fe_problem.hasException(); }
+  virtual bool keepGoing() override { return !_fe_problem.hasException(); }
 protected:
   SystemBase & _system;
   FEProblem & _fe_problem;

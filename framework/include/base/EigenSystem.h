@@ -23,7 +23,6 @@ class EigenSystem : public NonlinearSystem
 {
 public:
   EigenSystem(FEProblem & problem, const std::string & name);
-  virtual ~EigenSystem();
 
   /**
    * Adds a kernel

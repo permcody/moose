@@ -90,9 +90,9 @@ public:
 
   void coupledCallback(const std::string & var_name, bool is_old);
 
-  virtual const std::set<std::string> & getRequestedItems();
+  virtual const std::set<std::string> & getRequestedItems() overide;
 
-  virtual const std::set<std::string> & getSuppliedItems();
+  virtual const std::set<std::string> & getSuppliedItems() overide;
 
   /**
    * Override functions from MaterialPropertyInterface for error checking
@@ -111,14 +111,13 @@ public:
 
   const UserObject & getUserObjectBase(const std::string & name);
 
-
-  virtual const PostprocessorValue & getPostprocessorValue(const std::string & name);
-  virtual const PostprocessorValue & getPostprocessorValueByName(const PostprocessorName & name);
+  virtual const PostprocessorValue & getPostprocessorValue(const std::string & name) overide;
+  virtual const PostprocessorValue & getPostprocessorValueByName(const PostprocessorName & name) overide;
 
 protected:
-  virtual const VariableValue & coupledDot(const std::string & var_name, unsigned int comp = 0);
+  virtual const VariableValue & coupledDot(const std::string & var_name, unsigned int comp = 0) overide;
 
-  virtual const VariableValue & coupledDotDu(const std::string & var_name, unsigned int comp = 0);
+  virtual const VariableValue & coupledDotDu(const std::string & var_name, unsigned int comp = 0) overide;
 
   virtual Real computeValue() = 0;
 

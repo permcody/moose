@@ -30,17 +30,13 @@ public:
   // Splitting Constructor
   ComputeNodalUserObjectsThread(ComputeNodalUserObjectsThread & x, Threads::split split);
 
-  virtual ~ComputeNodalUserObjectsThread();
-
-  virtual void onNode(ConstNodeRange::const_iterator & node_it);
+protected:
+  virtual void onNode(ConstNodeRange::const_iterator & node_it) override;
 
   void join(const ComputeNodalUserObjectsThread & /*y*/);
 
-protected:
-
   /// Storage for NodalUserObjects (see FEProblem::cmputeUserObjects)
   const MooseObjectWarehouse<NodalUserObject> & _user_objects;
-
 };
 
 #endif //COMPUTENODALUserObjectsTHREAD_H

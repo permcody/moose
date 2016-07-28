@@ -44,7 +44,6 @@ template <typename T> class SparseMatrix;
 
 /**
  * Keeps track of stuff related to assembling
- *
  */
 class Assembly
 {

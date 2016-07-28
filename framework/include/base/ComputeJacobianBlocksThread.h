@@ -50,13 +50,11 @@ public:
   // Splitting Constructor
   ComputeJacobianBlocksThread(ComputeJacobianBlocksThread & x, Threads::split split);
 
-  virtual ~ComputeJacobianBlocksThread();
-
   void join(const ComputeJacobianThread & /*y*/)
   {}
 
 protected:
-  virtual void postElement(const Elem * elem);
+  virtual void postElement(const Elem * elem) override;
 
   std::vector<JacobianBlock*> _blocks;
 };

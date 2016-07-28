@@ -31,11 +31,11 @@ public:
   // Splitting Constructor
   UpdateErrorVectorsThread(UpdateErrorVectorsThread & x, Threads::split split);
 
-  virtual void onElement(const Elem *elem);
+protected:
+  virtual void onElement(const Elem *elem) override;
 
   void join(const UpdateErrorVectorsThread & /*y*/);
 
-protected:
   FEProblem & _fe_problem;
   std::map<std::string, ErrorVector *> _indicator_field_to_error_vector;
   AuxiliarySystem & _aux_sys;

@@ -34,15 +34,13 @@ public:
   // Splitting Constructor
   ComputeElemAuxVarsThread(ComputeElemAuxVarsThread & x, Threads::split split);
 
-  virtual ~ComputeElemAuxVarsThread();
-
-  virtual void subdomainChanged();
-  virtual void onElement(const Elem *elem);
-  virtual void post();
+protected:
+  virtual void subdomainChanged() override;
+  virtual void onElement(const Elem *elem) override;
+  virtual void post() override;
 
   void join(const ComputeElemAuxVarsThread & /*y*/);
 
-protected:
   AuxiliarySystem & _aux_sys;
 
   /// Storage object containing active AuxKernel objects

@@ -30,7 +30,6 @@ class Problem : public MooseObject
 {
 public:
   Problem(const InputParameters & parameters);
-  virtual ~Problem();
 
   virtual void init() = 0;
 

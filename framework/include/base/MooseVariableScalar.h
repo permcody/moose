@@ -31,11 +31,10 @@ class MooseVariableScalar : public MooseVariableBase
 {
 public:
   MooseVariableScalar(unsigned int var_num, const FEType & fe_type, SystemBase & sys, Assembly & assembly, Moose::VarKindType var_kind);
-  virtual ~MooseVariableScalar();
 
   void reinit();
 
-  virtual bool isNodal() const;
+  virtual bool isNodal() const override;
 
   //
   VariableValue & sln() { return _u; }

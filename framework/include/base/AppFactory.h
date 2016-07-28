@@ -60,7 +60,6 @@ public:
    * @return Pointer to the AppFactory instance
    */
   static AppFactory & instance();
-
   virtual ~AppFactory();
 
   /**

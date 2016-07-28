@@ -49,7 +49,6 @@ class SubProblem : public Problem
 {
 public:
   SubProblem(const InputParameters & parameters);
-  virtual ~SubProblem();
 
   virtual EquationSystems & es() = 0;
   virtual MooseMesh & mesh() = 0;

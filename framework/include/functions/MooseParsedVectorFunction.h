@@ -41,29 +41,11 @@ public:
    */
   MooseParsedVectorFunction(const InputParameters & parameters);
 
-  /**
-   * Class destructor
-   */
-  virtual ~MooseParsedVectorFunction();
+  virtual RealVectorValue vectorValue(Real t, const Point & p) override;
 
-  /**
-   * Returns the vector function evaluation
-   * @param t The time
-   * @param p The current x,y,z location
-   * @return The vector resulting from evaluating the function
-   */
-  virtual RealVectorValue vectorValue(Real t, const Point & p);
+  virtual RealGradient gradient(Real t, const Point & p) override;
 
-  /**
-   * Gradient method is not valid in a vector function
-   * \see ParsedGradFunction
-   */
-  virtual RealGradient gradient(Real t, const Point & p);
-
-  /**
-   * Creates the libMesh::ParsedFunction for returning a vector via the 'vectorValue' method
-   */
-  virtual void initialSetup();
+  virtual void initialSetup() override;
 
 protected:
 

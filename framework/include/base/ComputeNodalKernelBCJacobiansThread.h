@@ -33,13 +33,13 @@ public:
   // Splitting Constructor
   ComputeNodalKernelBCJacobiansThread(ComputeNodalKernelBCJacobiansThread & x, Threads::split split);
 
-  virtual void pre();
+protected:
+  virtual void pre() override;
 
-  virtual void onNode(ConstBndNodeRange::const_iterator & node_it);
+  virtual void onNode(ConstBndNodeRange::const_iterator & node_it) override;
 
   void join(const ComputeNodalKernelBCJacobiansThread & /*y*/);
 
-protected:
   AuxiliarySystem & _sys;
 
   const MooseObjectWarehouse<NodalKernel> & _nodal_kernels;

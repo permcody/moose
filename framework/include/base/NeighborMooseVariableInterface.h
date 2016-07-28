@@ -33,8 +33,6 @@ public:
    */
   NeighborMooseVariableInterface(const MooseObject * moose_object, bool nodal);
 
-  virtual ~NeighborMooseVariableInterface();
-
 protected:
   /**
    * The value of the variable this object is operating on evaluated on the "neighbor" element.

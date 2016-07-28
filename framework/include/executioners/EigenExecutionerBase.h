@@ -40,12 +40,7 @@ public:
    */
   EigenExecutionerBase(const InputParameters & parameters);
 
-  virtual ~EigenExecutionerBase();
-
-  /**
-   * Initialization
-   */
-  virtual void init();
+  virtual void init() override;
 
   /**
    * The old eigenvalue used by inverse power iterations

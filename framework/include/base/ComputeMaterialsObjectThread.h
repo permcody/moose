@@ -41,16 +41,14 @@ public:
   // Splitting Constructor
   ComputeMaterialsObjectThread(ComputeMaterialsObjectThread & x, Threads::split split);
 
-  virtual ~ComputeMaterialsObjectThread();
-
-  virtual void subdomainChanged();
-  virtual void onElement(const Elem *elem);
-  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id);
-  virtual void onInternalSide(const Elem *elem, unsigned int side);
+protected:
+  virtual void subdomainChanged() override;
+  virtual void onElement(const Elem *elem) override;
+  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id) override;
+  virtual void onInternalSide(const Elem *elem, unsigned int side) override;
 
   void join(const ComputeMaterialsObjectThread & /*y*/);
 
-protected:
   FEProblem & _fe_problem;
   NonlinearSystem & _sys;
   std::vector<MooseSharedPointer<MaterialData> > & _material_data;

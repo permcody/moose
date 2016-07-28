@@ -36,13 +36,13 @@ public:
 
   UpdateDisplacedMeshThread(UpdateDisplacedMeshThread & x, Threads::split split);
 
-  virtual void pre();
+protected:
+  virtual void pre() override;
 
-  virtual void onNode(SemiLocalNodeRange::const_iterator & nd);
+  virtual void onNode(SemiLocalNodeRange::const_iterator & nd) override;
 
   void join(const UpdateDisplacedMeshThread & /*y*/);
 
-protected:
   DisplacedProblem & _displaced_problem;
   MooseMesh & _ref_mesh;
   const NumericVector<Number> & _nl_soln;

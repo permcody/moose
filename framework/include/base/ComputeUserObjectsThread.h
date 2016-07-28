@@ -41,17 +41,15 @@ public:
   // Splitting Constructor
   ComputeUserObjectsThread(ComputeUserObjectsThread & x, Threads::split);
 
-  virtual ~ComputeUserObjectsThread();
-
-  virtual void onElement(const Elem *elem);
-  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id);
-  virtual void onInternalSide(const Elem *elem, unsigned int side);
-  virtual void post();
-  virtual void subdomainChanged();
+protected:
+  virtual void onElement(const Elem *elem) override;
+  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id) override;
+  virtual void onInternalSide(const Elem *elem, unsigned int side) override;
+  virtual void post() override;
+  virtual void subdomainChanged() override;
 
   void join(const ComputeUserObjectsThread & /*y*/);
 
-protected:
   const NumericVector<Number>& _soln;
 
   ///@{

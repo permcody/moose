@@ -72,16 +72,16 @@ public:
 
   virtual void computeMarker();
 
-  bool isActive() const;
+  bool isActive() const override;
 
   /**
    * Is called before any element looping is started so any "global" computation can be done.
    */
   virtual void markerSetup();
 
-  virtual const std::set<std::string> & getRequestedItems();
+  virtual const std::set<std::string> & getRequestedItems() override;
 
-  virtual const std::set<std::string> & getSuppliedItems();
+  virtual const std::set<std::string> & getSuppliedItems() override;
 
 protected:
 

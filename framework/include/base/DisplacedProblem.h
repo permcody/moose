@@ -46,7 +46,6 @@ class DisplacedProblem : public SubProblem
 {
 public:
   DisplacedProblem(const InputParameters & parameters);
-  virtual ~DisplacedProblem();
 
   virtual EquationSystems & es() { return _eq; }
   virtual MooseMesh & mesh() { return _mesh; }
@@ -67,7 +66,7 @@ public:
    */
   virtual void useFECache(bool fe_cache);
 
-  virtual void init();
+  virtual void init() override;
   virtual void solve();
   virtual bool converged();
 

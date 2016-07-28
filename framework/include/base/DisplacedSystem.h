@@ -29,9 +29,8 @@ class DisplacedSystem : public SystemTempl<TransientExplicitSystem>
 {
 public:
   DisplacedSystem(DisplacedProblem & problem, SystemBase & undisplaced_system, const std::string & name, Moose::VarKindType var_kind);
-  virtual ~DisplacedSystem();
 
-  virtual void init();
+  virtual void init() override;
 
   virtual NumericVector<Number> & getVector(const std::string & name);
 

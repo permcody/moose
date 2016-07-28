@@ -27,10 +27,6 @@ Diffusion::Diffusion(const InputParameters & parameters) :
 {
 }
 
-Diffusion::~Diffusion()
-{
-}
-
 Real
 Diffusion::computeQpResidual()
 {
@@ -42,4 +38,3 @@ Diffusion::computeQpJacobian()
 {
   return _grad_phi[_j][_qp] * _grad_test[_i][_qp];
 }
-

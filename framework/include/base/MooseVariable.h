@@ -42,7 +42,6 @@ class MooseVariable : public MooseVariableBase
 {
 public:
   MooseVariable(unsigned int var_num, const FEType & fe_type, SystemBase & sys, Assembly & assembly, Moose::VarKindType var_kind);
-  virtual ~MooseVariable();
 
   /**
    * Clear out the dof indices.  We do this in case this variable is not going to be prepared at all...
@@ -76,7 +75,7 @@ public:
    * Is this variable nodal
    * @return true if it nodal, otherwise false
    */
-  virtual bool isNodal() const;
+  virtual bool isNodal() const override;
 
   /**
    * Current element this variable is evaluated at

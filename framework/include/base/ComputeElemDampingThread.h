@@ -34,15 +34,13 @@ public:
   // Splitting Constructor
   ComputeElemDampingThread(ComputeElemDampingThread & x, Threads::split split);
 
-  virtual ~ComputeElemDampingThread();
-
-  virtual void onElement(const Elem *elem);
+protected:
+  virtual void onElement(const Elem *elem) override;
 
   void join(const ComputeElemDampingThread & /*y*/);
 
   Real damping();
 
-protected:
   Real _damping;
   NonlinearSystem & _nl;
   const MooseObjectWarehouse<ElementDamper> & _element_dampers;

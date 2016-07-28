@@ -43,17 +43,10 @@ public:
    * @return Whether or not the solve was successful.
    */
   Transient(const InputParameters & parameters);
-  virtual ~Transient();
 
-  /**
-   * Initialize executioner
-   */
-  virtual void init();
+  virtual void init() override;
 
-  /**
-   * This will call solve() on the NonlinearSystem.
-   */
-  virtual void execute();
+  virtual void execute() override;
 
   /**
    * Do whatever is necessary to advance one step.
@@ -79,17 +72,17 @@ public:
   /**
    * Whether or not the last solve converged.
    */
-  virtual bool lastSolveConverged();
+  virtual bool lastSolveConverged() override;
 
-  virtual void preExecute();
+  virtual void preExecute() override;
 
-  virtual void postExecute();
+  virtual void postExecute() override;
 
   virtual void computeDT();
 
-  virtual void preStep();
+  virtual void preStep() override;
 
-  virtual void postStep();
+  virtual void postStep() override;
 
   /**
    * This is where the solve step is actually incremented.

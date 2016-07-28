@@ -59,9 +59,8 @@ class NonlinearSystem : public SystemTempl<TransientNonlinearImplicitSystem>,
 {
 public:
   NonlinearSystem(FEProblem & problem, const std::string & name);
-  virtual ~NonlinearSystem();
 
-  virtual void init();
+  virtual void init() override;
   virtual void solve();
   virtual void restoreSolutions();
 

@@ -32,11 +32,11 @@ public:
   // Splitting Constructor
   FlagElementsThread(FlagElementsThread & x, Threads::split split);
 
-  virtual void onElement(const Elem *elem);
+protected:
+  virtual void onElement(const Elem *elem) override;
 
   void join(const FlagElementsThread & /*y*/);
 
-protected:
   FEProblem & _fe_problem;
   MooseSharedPointer<DisplacedProblem> _displaced_problem;
   AuxiliarySystem & _aux_sys;

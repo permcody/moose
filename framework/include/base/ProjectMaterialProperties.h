@@ -41,16 +41,14 @@ public:
   // Splitting Constructor
   ProjectMaterialProperties(ProjectMaterialProperties & x, Threads::split split);
 
-  virtual ~ProjectMaterialProperties();
-
-  virtual void subdomainChanged();
-  virtual void onElement(const Elem *elem);
-  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id);
-  virtual void onInternalSide(const Elem *elem, unsigned int side);
+protected:
+  virtual void subdomainChanged() override;
+  virtual void onElement(const Elem *elem) override;
+  virtual void onBoundary(const Elem *elem, unsigned int side, BoundaryID bnd_id) override;
+  virtual void onInternalSide(const Elem *elem, unsigned int side) override;
 
   void join(const ProjectMaterialProperties & /*y*/);
 
-protected:
   /// Whether or not you are projecting refinements.  Set to false for coarsening.
   bool _refine;
   FEProblem & _fe_problem;
