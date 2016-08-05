@@ -19,6 +19,8 @@
 #include "FEProblem.h"
 #include "ThreadedElementLoopBase.h"
 
+#include "libmesh/libmesh_exceptions.h"
+
 // Forward declarations
 class SystemBase;
 
@@ -45,6 +47,8 @@ public:
   virtual ~ThreadedElementLoop();
 
   virtual void caughtMooseException(MooseException & e) override;
+
+  virtual void caughtMooseException(LogicError & e) override;
 
   virtual bool keepGoing() override { return !_fe_problem.hasException(); }
 protected:
@@ -77,6 +81,16 @@ ThreadedElementLoop<RangeType>::~ThreadedElementLoop()
 template<typename RangeType>
 void
 ThreadedElementLoop<RangeType>::caughtMooseException(MooseException & e)
+{
+  Threads::spin_mutex::scoped_lock lock(threaded_element_mutex);
+
+  std::string what(e.what());
+  _fe_problem.setException(what);
+}
+
+template<typename RangeType>
+void
+ThreadedElementLoop<RangeType>::caughtMooseException(LogicError & e)
 {
   Threads::spin_mutex::scoped_lock lock(threaded_element_mutex);
 

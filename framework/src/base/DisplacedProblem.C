@@ -341,6 +341,7 @@ DisplacedProblem::reinitElem(const Elem * elem, THREAD_ID tid)
 {
   _displaced_nl.reinitElem(elem, tid);
   _displaced_aux.reinitElem(elem, tid);
+  elem->print_info();
 }
 
 void

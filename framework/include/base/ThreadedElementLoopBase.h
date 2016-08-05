@@ -20,6 +20,8 @@
 #include "MooseTypes.h"
 #include "MooseException.h"
 
+#include "libmesh/libmesh_exceptions.h"
+
 /**
  * Base class for assembly-like calculations.
  */
@@ -93,11 +95,14 @@ public:
    */
   virtual void subdomainChanged();
 
+  ///@{
   /**
    * Called if a MooseException is caught anywhere during the computation.
    * The single input parameter taken is a MooseException object.
    */
   virtual void caughtMooseException(MooseException &) {};
+  virtual void caughtMooseException(LogicError &) {};
+  ///@}
 
   /**
    * Whether or not the loop should continue.
@@ -190,6 +195,11 @@ ThreadedElementLoopBase<RangeType>::operator () (const RangeType & range, bool b
   {
     caughtMooseException(e);
   }
+//  // Also attempt to handle libMesh logic errors (treat them as MooseExceptions)
+//  catch (LogicError & e)
+//  {
+//    caughtMooseException(e);
+//  }
 }
 
 template<typename RangeType>
