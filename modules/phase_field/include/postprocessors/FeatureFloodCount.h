@@ -451,6 +451,8 @@ protected:
    */
   std::vector<std::map<dof_id_type, int> > _feature_maps;
 
+  /// The map recording the local to global feature ids
+  std::vector<unsigned int> _local_to_global_feature_map;
 
   /// A pointer to the periodic boundary constraints object
   PeriodicBoundaries *_pbs;
@@ -514,37 +516,36 @@ template <class T>
 void
 FeatureFloodCount::writeCSVFile(const std::string file_name, const std::vector<T> data)
 {
-  if (processor_id() == 0)
+  mooseAssert(processor_id() == 0, "Only write files on processor zero");
+
+  // Try to find the filename
+  auto handle_it = _file_handles.find(file_name);
+
+  // If the file_handle isn't found, create it
+  if (handle_it == _file_handles.end())
   {
-    // Try to find the filename
-    auto handle_it = _file_handles.find(file_name);
+    MooseUtils::checkFileWriteable(file_name);
 
-    // If the file_handle isn't found, create it
-    if (handle_it == _file_handles.end())
-    {
-      MooseUtils::checkFileWriteable(file_name);
+    // Store the new filename in the map
+    auto result = _file_handles.insert(std::make_pair(file_name, libmesh_make_unique<std::ofstream>(file_name.c_str())));
 
-      // Store the new filename in the map
-      auto result = _file_handles.insert(std::make_pair(file_name, libmesh_make_unique<std::ofstream>(file_name.c_str())));
+    // Be sure that the insert worked!
+    mooseAssert(result.second, "Insertion into _file_handles map failed!");
 
-      // Be sure that the insert worked!
-      mooseAssert(result.second, "Insertion into _file_handles map failed!");
-
-      // Set handle_it to be an iterator to the new file.
-      handle_it = result.first;
-    }
-
-    // Get reference to the stream, makes syntax below much simpler
-    std::ofstream & the_stream = *(handle_it->second);
-
-    // Set formatting flags on the stream - technically we only need to do this once, but whatever.
-    the_stream << std::scientific << std::setprecision(6);
-
-    mooseAssert(the_stream.is_open(), "File handle is not open");
-
-    std::copy(data.begin(), data.end(), infix_ostream_iterator<T>(the_stream, ", "));
-    the_stream << std::endl;
+    // Set handle_it to be an iterator to the new file.
+    handle_it = result.first;
   }
+
+  // Get reference to the stream, makes syntax below much simpler
+  std::ofstream & the_stream = *(handle_it->second);
+
+  // Set formatting flags on the stream - technically we only need to do this once, but whatever.
+  the_stream << std::scientific << std::setprecision(6);
+
+  mooseAssert(the_stream.is_open(), "File handle is not open");
+
+  std::copy(data.begin(), data.end(), infix_ostream_iterator<T>(the_stream, ", "));
+  the_stream << std::endl;
 }
 
 template<> void dataStore(std::ostream & stream, FeatureFloodCount::FeatureData & feature, void * context);
