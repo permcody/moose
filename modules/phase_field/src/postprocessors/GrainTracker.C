@@ -322,6 +322,7 @@ GrainTracker::trackGrains()
           {
             Moose::out << "Re-assigning center " << closest_match_idx << " -> " << next_index << " "
                        << center_points[closest_match_idx] << " absolute distance: " << min_centroid_diff << '\n';
+            feature._status = Status::MARKED;
             _unique_grains[next_index] = std::move(feature);
 
             _unique_grain_to_ebsd_num[next_index] = closest_match_idx;
@@ -332,6 +333,7 @@ GrainTracker::trackGrains()
           {
             Moose::out << "Assigning center " << closest_match_idx << " "
                        << center_points[closest_match_idx] << " absolute distance: " << min_centroid_diff << '\n';
+            feature._status = Status::MARKED;
             _unique_grains[closest_match_idx] = std::move(feature);
 
             _unique_grain_to_ebsd_num[closest_match_idx] = closest_match_idx;
@@ -934,6 +936,12 @@ GrainTracker::swapSolutionValuesHelper(Node * curr_node, unsigned int curr_var_i
       cache[curr_node].current = current;
       cache[curr_node].old = old;
       cache[curr_node].older = older;
+
+//      const auto & dof_index = _vars[curr_var_idx]->nodalDofIndex();
+//      // Set the DOF for the current variable to zero
+//      _nl.solution().set(dof_index, 0.0);
+//      _nl.solutionOld().set(dof_index, 0.0);
+//      _nl.solutionOlder().set(dof_index, 0.0);
     }
     else // USE or BYPASS
     {
