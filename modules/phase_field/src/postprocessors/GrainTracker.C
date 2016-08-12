@@ -231,7 +231,7 @@ GrainTracker::trackGrains()
   {
     if (grain_pair.second._status != Status::INACTIVE)
     {
-      grain_pair.second._status = Status::NOT_MARKED;
+      grain_pair.second._status = Status::CLEAR;
       map_sizes[grain_pair.second._var_idx]++;
     }
   }
@@ -471,7 +471,7 @@ GrainTracker::trackGrains()
       // If it's not in the index list, it hasn't been transferred
       if (new_grain_idx_to_existing_grain_idx.find(std::make_pair(map_num, feature_num)) == new_grain_idx_to_existing_grain_idx.end())
       {
-        mooseAssert(_feature_sets[map_num][feature_num]._status == Status::NOT_MARKED, "Feature in wrong state, logic error");
+        mooseAssert(_feature_sets[map_num][feature_num]._status == Status::CLEAR, "Feature in wrong state, logic error");
 
         auto new_idx = _unique_grains.size() + _n_reserve_ops;
 
@@ -488,7 +488,7 @@ GrainTracker::trackGrains()
    * this particular variable.
    */
   for (auto & grain_pair : _unique_grains)
-    if (grain_pair.second._status == Status::NOT_MARKED)
+    if (grain_pair.second._status == Status::CLEAR)
     {
       grain_pair.second._status = Status::INACTIVE;
       _console << "Marking Grain " << grain_pair.first << " as INACTIVE (variable index: "
@@ -528,11 +528,11 @@ GrainTracker::remapGrains()
   std::vector<unsigned int> grain_id_to_existing_var_idx(_unique_grains.size(), std::numeric_limits<unsigned int>::max());
   for (auto & grain_pair : _unique_grains)
   {
-    mooseAssert(grain_pair.second._status != Status::NOT_MARKED, "Grain " << grain_pair.first << " status in wrong state.");
+    mooseAssert(!(grain_pair.second._status == Status::CLEAR), "Grain " << grain_pair.first << " status in wrong state.");
 
     if (grain_pair.second._status == Status::MARKED)
     {
-      grain_pair.second._status = Status::NOT_MARKED;
+      grain_pair.second._status = Status::CLEAR;
       grain_id_to_existing_var_idx[grain_pair.first] = grain_pair.second._var_idx;
     }
   }
@@ -804,7 +804,7 @@ GrainTracker::attemptGrainRenumber(FeatureData & grain, unsigned int grain_id, u
         << " are inside our bounding sphere but whose halo(s) are not touching.\n"
         << COLOR_DEFAULT;
 
-      // TODO: Status Dirty?
+      grain._status |= Status::DIRTY;
       grain._var_idx = target_it->_var_index;
 //      swapSolutionValues(grain, target_it->_var_index, cache, RemapCacheMode::BYPASS, depth);
       return true;
@@ -824,17 +824,17 @@ GrainTracker::attemptGrainRenumber(FeatureData & grain, unsigned int grain_id, u
       return false;
 
     // Make sure this grain isn't marked. If it is, we can't recurse here
-    if (target_grain._status == Status::MARKED)
+    if ((target_grain._status & Status::MARKED) == Status::MARKED)
       return false;
 
-    // TODO: Status Dirty?
+    grain._status |= Status::DIRTY;
     grain._var_idx = target_it->_var_index;
     // Save the solution values in case we overwrite them during recursion
 //    swapSolutionValues(grain, target_it->_var_index, cache, RemapCacheMode::FILL, depth);
 
     // Propose a new variable index for the current grain and recurse
     grain._var_idx = target_it->_var_index;
-    grain._status = Status::MARKED;
+    grain._status |= Status::MARKED;
     if (attemptGrainRenumber(target_grain, target_it->_grain_id, depth+1, max))
     {
       // SUCCESS!
@@ -858,7 +858,7 @@ GrainTracker::attemptGrainRenumber(FeatureData & grain, unsigned int grain_id, u
       grain._var_idx = curr_var_idx;
 
     // Always "unmark" the grain after the recursion so it can be used by other remap operations
-    grain._status = Status::NOT_MARKED;
+    grain._status &= ~Status::MARKED;
   }
 
   return false;
