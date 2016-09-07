@@ -974,7 +974,7 @@ Assembly::initNonlocalCoupling()
 }
 
 void
-Assembly::prepare()
+Assembly::prepareJacobian()
 {
   for (const auto & it : _cm_entry)
   {
@@ -988,7 +988,11 @@ Assembly::prepare()
     jacobianBlock(vi, vj).zero();
     _jacobian_block_used[vi][vj] = 0;
   }
+}
 
+void
+Assembly::prepareResidual()
+{
   const std::vector<MooseVariable *> & vars = _sys.getVariables(_tid);
   for (const auto & var : vars)
     for (unsigned int i = 0; i < _sub_Re.size(); i++)

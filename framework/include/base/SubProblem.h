@@ -148,6 +148,7 @@ public:
   virtual void addCachedJacobian(SparseMatrix<Number> & jacobian, THREAD_ID tid) = 0;
 
   virtual void prepare(const Elem * elem, THREAD_ID tid) = 0;
+  virtual void prepareJacobian(const Elem * elem, THREAD_ID tid) = 0;
   virtual void prepareFace(const Elem * elem, THREAD_ID tid) = 0;
   virtual void prepare(const Elem * elem, unsigned int ivar, unsigned int jvar, const std::vector<dof_id_type> & dof_indices, THREAD_ID tid) = 0;
   virtual void prepareAssembly(THREAD_ID tid) = 0;

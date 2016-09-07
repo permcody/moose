@@ -773,13 +773,29 @@ FEProblem::prepare(const Elem * elem, THREAD_ID tid)
 
   _nl.prepare(tid);
   _aux.prepare(tid);
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
+
+  if (_displaced_problem != NULL && (_reinit_displaced_elem || _reinit_displaced_face))
+  {
+    _displaced_problem->prepare(_displaced_mesh->elemPtr(elem->id()), tid);
+  }
+}
+
+void
+FEProblem::prepareJacobian(const Elem * elem, THREAD_ID tid)
+{
+  _assembly[tid]->reinit(elem);
+
+  _nl.prepare(tid);
+  _aux.prepare(tid);
+  _assembly[tid]->prepareJacobian();
+
   if (_has_nonlocal_coupling)
     _assembly[tid]->prepareNonlocal();
 
   if (_displaced_problem != NULL && (_reinit_displaced_elem || _reinit_displaced_face))
   {
-    _displaced_problem->prepare(_displaced_mesh->elemPtr(elem->id()), tid);
+    _displaced_problem->prepareJacobian(_displaced_mesh->elemPtr(elem->id()), tid);
     if (_has_nonlocal_coupling)
       _displaced_problem->prepareNonlocal(tid);
   }
@@ -825,13 +841,15 @@ FEProblem::prepare(const Elem * elem, unsigned int ivar, unsigned int jvar, cons
 void
 FEProblem::prepareAssembly(THREAD_ID tid)
 {
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
+  _assembly[tid]->prepareJacobian();
   if (_has_nonlocal_coupling)
     _assembly[tid]->prepareNonlocal();
 
   if (_displaced_problem != NULL && (_reinit_displaced_elem || _reinit_displaced_face))
   {
-    _displaced_problem->prepareAssembly(tid);
+    // TODO: Why are you always preparing?
+    //_displaced_problem->prepareAssembly(tid);
     if (_has_nonlocal_coupling)
       _displaced_problem->prepareNonlocal(tid);
   }
@@ -1098,7 +1116,8 @@ FEProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
     reinitElem(elem, tid);
   }
 
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
+  _assembly[tid]->prepareJacobian();
   if (_has_nonlocal_coupling)
     _assembly[tid]->prepareNonlocal();
 
@@ -1132,7 +1151,7 @@ FEProblem::reinitElemPhys(const Elem * elem, std::vector<Point> phys_points_in_e
   _aux.prepare(tid);
 
   reinitElem(elem, tid);
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
   if (_has_nonlocal_coupling)
     _assembly[tid]->prepareNonlocal();
 

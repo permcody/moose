@@ -1151,11 +1151,11 @@ NonlinearSystem::constraintResiduals(NumericVector<Number> & residual, bool disp
         // evaluate residuals that go into master and slave side
         for (const auto & ffc : face_constraints)
         {
-          ffc->reinitSide(Moose::Master);
+          ffc->reinitSide(Moose::Master, true);
           ffc->computeResidualSide(Moose::Master);
           _fe_problem.cacheResidual(tid);
 
-          ffc->reinitSide(Moose::Slave);
+          ffc->reinitSide(Moose::Slave, true);
           ffc->computeResidualSide(Moose::Slave);
           _fe_problem.cacheResidual(tid);
         }
@@ -1744,18 +1744,21 @@ NonlinearSystem::constraintJacobians(SparseMatrix<Number> & jacobian, bool displ
         // for each element process constraints on the
         for (const auto & ffc : face_constraints)
         {
+          // For side contribution
           _fe_problem.prepare(elem, tid);
+          // For Jacobian side contribution
+          _fe_problem.prepareJacobian(elem, tid);
           _fe_problem.reinitElem(elem, tid);
           ffc->reinit();
           ffc->subProblem().prepareShapes(ffc->variable().number(), tid);
           ffc->computeJacobian();
           _fe_problem.cacheJacobian(tid);
 
-          ffc->reinitSide(Moose::Master);
+          ffc->reinitSide(Moose::Master, false);
           ffc->computeJacobianSide(Moose::Master);
           _fe_problem.cacheJacobian(tid);
 
-          ffc->reinitSide(Moose::Slave);
+          ffc->reinitSide(Moose::Slave, false);
           ffc->computeJacobianSide(Moose::Slave);
           _fe_problem.cacheJacobian(tid);
         }

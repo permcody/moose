@@ -53,7 +53,7 @@ public:
    * Evaluate variables, compute q-points, etc.
    */
   virtual void reinit();
-  virtual void reinitSide(Moose::ConstraintType res_type);
+  virtual void reinitSide(Moose::ConstraintType res_type, bool on_residual);
 
   /**
    * Computes the residual for the current element.

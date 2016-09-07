@@ -109,21 +109,27 @@ FaceFaceConstraint::reinit()
 }
 
 void
-FaceFaceConstraint::reinitSide(Moose::ConstraintType res_type)
+FaceFaceConstraint::reinitSide(Moose::ConstraintType res_type, bool on_residual)
 {
   switch (res_type)
   {
   case Moose::Master:
     _assembly.reinit(_elem_master);
     _master_var.prepare();
-    _assembly.prepare();
+    if (on_residual)
+      _assembly.prepareResidual();
+    else
+      _assembly.prepareJacobian();
     _assembly.reinitAtPhysical(_elem_master, _phys_points_master);
     break;
 
   case Moose::Slave:
     _assembly.reinit(_elem_slave);
     _slave_var.prepare();
-    _assembly.prepare();
+    if (on_residual)
+      _assembly.prepareResidual();
+    else
+      _assembly.prepareJacobian();
     _assembly.reinitAtPhysical(_elem_slave, _phys_points_slave);
     break;
   }

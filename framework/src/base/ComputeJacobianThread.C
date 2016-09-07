@@ -136,7 +136,7 @@ ComputeJacobianThread::subdomainChanged()
 void
 ComputeJacobianThread::onElement(const Elem *elem)
 {
-  _fe_problem.prepare(elem, _tid);
+  _fe_problem.prepareJacobian(elem, _tid);
 
   _fe_problem.reinitElem(elem, _tid);
 

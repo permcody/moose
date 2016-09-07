@@ -341,7 +341,8 @@ public:
    */
   void useFECache(bool fe_cache) { _should_use_fe_cache = fe_cache; }
 
-  void prepare();
+  void prepareResidual();
+  void prepareJacobian();
   void prepareNonlocal();
 
   /**

@@ -281,7 +281,17 @@ DisplacedProblem::prepare(const Elem * elem, THREAD_ID tid)
 
   _displaced_nl.prepare(tid);
   _displaced_aux.prepare(tid);
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
+}
+
+void
+DisplacedProblem::prepareJacobian(const Elem * elem, THREAD_ID tid)
+{
+  _assembly[tid]->reinit(elem);
+
+  _displaced_nl.prepare(tid);
+  _displaced_aux.prepare(tid);
+  _assembly[tid]->prepareJacobian();
 }
 
 void
@@ -316,7 +326,8 @@ DisplacedProblem::prepareBlockNonlocal(unsigned int ivar, unsigned int jvar, con
 void
 DisplacedProblem::prepareAssembly(THREAD_ID tid)
 {
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
+  _assembly[tid]->prepareJacobian();
 }
 
 void
@@ -342,7 +353,7 @@ DisplacedProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
     reinitElem(elem, tid);
   }
 
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
 
   return n_points > 0;
 }
@@ -365,7 +376,7 @@ DisplacedProblem::reinitElemPhys(const Elem * elem, std::vector<Point> phys_poin
 
   _displaced_nl.prepare(tid);
   _displaced_aux.prepare(tid);
-  _assembly[tid]->prepare();
+  _assembly[tid]->prepareResidual();
 
   reinitElem(elem, tid);
 }
