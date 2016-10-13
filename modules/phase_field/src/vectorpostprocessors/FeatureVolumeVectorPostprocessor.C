@@ -9,6 +9,7 @@
 #include "FeatureFloodCount.h"
 #include "GrainTrackerInterface.h"
 #include "MooseMesh.h"
+#include "EBSDReader.h"
 #include "Assembly.h"
 
 #include "libmesh/quadrature.h"
@@ -21,6 +22,11 @@ InputParameters validParams<FeatureVolumeVectorPostprocessor>()
   params.addRequiredParam<UserObjectName>("flood_counter", "The FeatureFloodCount UserObject to get values from.");
   params.addParam<bool>("single_feature_per_element", false, "Set this Boolean if you wish to use an element based volume where"
                         " the dominant order parameter determines the feature that accumulates the entire element volume");
+  params.addParam<UserObjectName>("ebsd_reader", "Optional: EBSD Reader for masking phase during single_feature_per_element calculation");
+  params.addParam<unsigned int>("phase", "EBSD phase number from which to retrieve information");
+
+  params.addParamNamesToGroup("ebsd_reader", "Advanced");
+
   return params;
 }
 
@@ -28,6 +34,8 @@ FeatureVolumeVectorPostprocessor::FeatureVolumeVectorPostprocessor(const InputPa
     GeneralVectorPostprocessor(parameters),
     MooseVariableDependencyInterface(),
     _single_feature_per_elem(getParam<bool>("single_feature_per_element")),
+    _ebsd_reader(parameters.isParamValid("ebsd_reader") ? &getUserObject<EBSDReader>("ebsd_reader") : nullptr),
+    _phase(isParamValid("phase") ? getParam<unsigned int>("phase") : 0),
     _feature_counter(getUserObject<FeatureFloodCount>("flood_counter")),
     _var_num(declareVector("var_num")),
     _feature_volumes(declareVector("feature_volumes")),
@@ -45,17 +53,22 @@ FeatureVolumeVectorPostprocessor::FeatureVolumeVectorPostprocessor(const InputPa
   _coupled_sln.reserve(_vars.size());
   for (auto & var : _vars)
     _coupled_sln.push_back(&var->sln());
+
+  if (_ebsd_reader && !isParamValid("phase"))
+    mooseError("The EBSD Reader is only needed to mask off phase. Phase must be provided if ebsd_reader is provided");
 }
 
 void
 FeatureVolumeVectorPostprocessor::initialize()
 {
+
 }
 
 void
 FeatureVolumeVectorPostprocessor::execute()
 {
   const auto num_features = _feature_counter.getTotalFeatureCount();
+  const auto orig_refine_level = _mesh.uniformRefineLevel();
 
   // Reset the variable index and intersect bounds vectors
   _var_num.assign(num_features, -1); // Invalid
@@ -74,7 +87,7 @@ FeatureVolumeVectorPostprocessor::execute()
   const auto end = _mesh.getMesh().active_local_elements_end();
   for (auto el = _mesh.getMesh().active_local_elements_begin(); el != end; ++el)
   {
-    const Elem * elem = *el;
+    Elem * elem = *el;
     _fe_problem.prepare(elem, 0);
     _fe_problem.reinitElem(elem, 0);
 
@@ -86,7 +99,27 @@ FeatureVolumeVectorPostprocessor::execute()
      */
     const auto & var_to_features = _feature_counter.getVarToFeatureVector(elem->id());
 
-    accumulateVolumes(elem, var_to_features, num_features);
+    bool accumulate_volume_on_elem = true;
+    if (_ebsd_reader)
+    {
+      auto elem_level = elem->level();
+      int level_diff = elem_level - orig_refine_level;
+
+      if (level_diff < 0)
+        mooseError("This doesn't work with coarsened elements...");
+
+      // We need to retrieve an element at the same level of refinement as the EBSD mesh
+      Elem * ebsd_elem = elem;
+      for (decltype(level_diff) i = 0; i < level_diff && elem->parent(); ++i)
+        ebsd_elem = elem->parent();
+
+      const EBSDAccessFunctors::EBSDPointData & d = _ebsd_reader->getData(ebsd_elem->centroid());
+      const auto phase = d._phase;
+      accumulate_volume_on_elem = (phase == _phase);
+    }
+
+    if (accumulate_volume_on_elem)
+      accumulateVolumes(elem, var_to_features, num_features);
   }
 }
 

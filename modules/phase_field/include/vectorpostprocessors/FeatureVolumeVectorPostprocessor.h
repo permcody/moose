@@ -14,6 +14,7 @@
 //Forward Declarations
 class FeatureVolumeVectorPostprocessor;
 class FeatureFloodCount;
+class EBSDReader;
 
 template<>
 InputParameters validParams<FeatureVolumeVectorPostprocessor>();
@@ -47,6 +48,12 @@ public:
 protected:
   /// A Boolean indicating how the volume is calculated
   const bool _single_feature_per_elem;
+
+  /// Optional ESBD Reader
+  const EBSDReader * _ebsd_reader;
+
+  /// The phase to retrieve EBSD information from
+  const unsigned int _phase;
 
   /// A reference to the feature flood count object
   const FeatureFloodCount & _feature_counter;
