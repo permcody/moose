@@ -114,6 +114,7 @@ FeatureFloodCount::FeatureFloodCount(const InputParameters & parameters) :
     _threshold(getParam<Real>("threshold")),
     _connecting_threshold(isParamValid("connecting_threshold") ? getParam<Real>("connecting_threshold") : getParam<Real>("threshold")),
     _mesh(_subproblem.mesh()),
+    _dof_map(_fe_problem.getNonlinearSystem().dofMap()),
     _var_number(_vars[0]->number()),
     _single_map_mode(getParam<bool>("use_single_map")),
     _condense_map_info(getParam<bool>("condense_map_info")),
@@ -226,8 +227,9 @@ FeatureFloodCount::meshChanged()
 void
 FeatureFloodCount::execute()
 {
-  const auto end = _mesh.getMesh().active_local_elements_end();
-  for (auto el = _mesh.getMesh().active_local_elements_begin(); el != end; ++el)
+  // TODO: We are assuming all variables are evaluable here.
+  const auto end = _mesh.getMesh().evaluable_elements_end(_dof_map);
+  for (auto el = _mesh.getMesh().evaluable_elements_begin(_dof_map); el != end; ++el)
   {
     const Elem * current_elem = *el;
 
@@ -1048,8 +1050,8 @@ FeatureFloodCount::visitNodalNeighbors(const Node * node, std::size_t current_in
 
 template<typename T>
 void
-FeatureFloodCount::visitNeighborsHelper(const T * curr_entity, std::vector<const T *> neighbor_entities, std::size_t current_index,
-                                        FeatureData * feature, bool expand_halos_only)
+FeatureFloodCount::visitNeighborsHelper(const T * curr_entity, std::vector<const T *> neighbor_entities,
+                                        std::size_t current_index, FeatureData * feature, bool expand_halos_only)
 {
   // Loop over all active element neighbors
   for (const auto neighbor : neighbor_entities)
@@ -1063,14 +1065,17 @@ FeatureFloodCount::visitNeighborsHelper(const T * curr_entity, std::vector<const
       {
         auto my_processor_id = processor_id();
 
-        if (neighbor->processor_id() != my_processor_id)
+        if (curr_entity->processor_id() == processor_id() && neighbor->processor_id() != my_processor_id)
           feature->_ghosted_ids.insert(curr_entity->id());
+
+        const auto & node_to_elem_map = _mesh.nodeToElemMap();
+
 
         /**
          * Only recurse where we own this entity. We might step outside of the
          * ghosted region if we recurse where we don't own the current entity.
          */
-        if (curr_entity->processor_id() == my_processor_id)
+        if (_dof_map.is_evaluable(neighbor))
         {
           /**
            * Premark neighboring entities with a halo mark. These

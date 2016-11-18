@@ -438,6 +438,9 @@ protected:
   /// A reference to the mesh
   MooseMesh & _mesh;
 
+  /// A reference to the NL Dof map
+  DofMap & dof_map;
+
   /**
    * This variable is used to build the periodic node map.
    * Assumption: We are going to assume that either all variables are periodic or none are.
