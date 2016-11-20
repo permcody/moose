@@ -39,10 +39,6 @@ EBSDMesh::EBSDMesh(const InputParameters & parameters) :
     mooseWarning("Do not specify mesh geometry information, it is read from the EBSD file.");
 }
 
-EBSDMesh::~EBSDMesh()
-{
-}
-
 void
 EBSDMesh::readEBSDHeader()
 {

@@ -1427,10 +1427,6 @@ GrainTracker::updateFieldInfo()
       }
     }
 
-    if (_compute_halo_maps)
-      for (auto entity : grain._halo_ids)
-        _halo_ids[grain._var_index][entity] = grain._var_index;
-
     for (auto entity : grain._ghosted_ids)
       _ghosted_entity_ids[entity] = 1;
   }
@@ -1446,46 +1442,82 @@ GrainTracker::communicateHaloMap()
     //rank               var_index     entity_id
     std::vector<std::pair<std::size_t, dof_id_type> > halo_ids_all;
 
-    std::vector<int> counts;
-    std::vector<std::pair<std::size_t, dof_id_type> > local_halo_ids;
-    std::size_t counter = 0;
-
     if (_is_master)
+      for (const auto & grain : _feature_sets)
+        for (auto entity : grain._halo_ids)
+          halo_ids_all.emplace_back(std::make_pair(grain._var_index, entity));
+
+    auto size = halo_ids_all.size();
+    _communicator.broadcast(size);
+    halo_ids_all.resize(size);
+    _communicator.broadcast(halo_ids_all);
+
+    for (const auto & halo_pair : halo_ids_all)
     {
-      std::vector<std::vector<std::pair<std::size_t, dof_id_type> > > root_halo_ids(_n_procs);
-      counts.resize(_n_procs);
-
-      auto & mesh = _mesh.getMesh();
-      // Loop over the _halo_ids "field" and build minimal lists for all of the other ranks
-      for (auto var_index = beginIndex(_halo_ids); var_index < _halo_ids.size(); ++var_index)
-      {
-        for (const auto & entity_pair : _halo_ids[var_index])
-        {
-          DofObject * halo_entity;
-          if (_is_elemental)
-            halo_entity = mesh.elem(entity_pair.first);
-          else
-            halo_entity = &mesh.node(entity_pair.first);
-
-          root_halo_ids[halo_entity->processor_id()].push_back(std::make_pair(var_index, entity_pair.first));
-        }
-      }
-
-      // Build up the counts vector for MPI scatter
-      std::size_t global_count = 0;
-      for (const auto & vector_ref : root_halo_ids)
-      {
-        std::copy(vector_ref.begin(), vector_ref.end(), std::back_inserter(halo_ids_all));
-        counts[counter] = vector_ref.size();
-        global_count += counts[counter++];
-      }
+      _halo_ids[halo_pair.first].emplace(std::make_pair(halo_pair.second, halo_pair.first));
     }
 
-    _communicator.scatter(halo_ids_all, counts, local_halo_ids);
-
-    // Now add the contributions from the root process to the processor local maps
-    for (const auto & halo_pair : local_halo_ids)
-      _halo_ids[halo_pair.first].emplace(std::make_pair(halo_pair.second, halo_pair.first));
+//    //rank               var_index     entity_id
+//    std::vector<std::pair<std::size_t, dof_id_type> > halo_ids_all;
+//
+//    std::vector<int> counts;
+//    std::vector<std::pair<std::size_t, dof_id_type> > local_halo_ids;
+//    std::size_t counter = 0;
+//
+//    if (_is_master)
+//    {
+//      std::vector<std::vector<std::pair<std::size_t, dof_id_type> > > root_halo_ids(_n_procs);
+//      counts.resize(_n_procs);
+//
+//      auto & mesh = _mesh.getMesh();
+//
+//      for (const auto & grain : _feature_sets)
+//        for (auto entity : grain._halo_ids)
+//          for (const auto & orig_pair : grain._orig_ids)
+//            root_halo_ids[orig_pair.first].emplace_back(std::make_pair(grain._var_index, entity));
+//
+////      // Loop over the _halo_ids "field" and build minimal lists for all of the other ranks
+////      for (auto var_index = beginIndex(_halo_ids); var_index < _halo_ids.size(); ++var_index)
+////      {
+////        for (const auto & entity_pair : _halo_ids[var_index])
+////        {
+////          DofObject * halo_entity;
+////          if (_is_elemental)
+////            halo_entity = mesh.elem(entity_pair.first);
+////          else
+////            halo_entity = &mesh.node(entity_pair.first);
+////
+////          root_halo_ids[halo_entity->processor_id()].push_back(std::make_pair(var_index, entity_pair.first));
+////        }
+////      }
+//
+//      // Build up the counts vector for MPI scatter
+//      std::size_t global_count = 0;
+//      for (const auto & vector_ref : root_halo_ids)
+//      {
+//        std::copy(vector_ref.begin(), vector_ref.end(), std::back_inserter(halo_ids_all));
+//        counts[counter] = vector_ref.size();
+//        global_count += counts[counter++];
+//      }
+//    }
+//
+//    _communicator.scatter(halo_ids_all, counts, local_halo_ids);
+//
+//    // Now add the contributions from the root process to the processor local maps
+//    auto & mesh = _mesh.getMesh();
+//    for (const auto & halo_pair : local_halo_ids)
+//    {
+//      if (_is_elemental)
+//      {
+//        if (mesh.query_elem_ptr(halo_pair.second))
+//          _halo_ids[halo_pair.first].emplace(std::make_pair(halo_pair.second, halo_pair.first));
+//      }
+//      else
+//      {
+//        if (mesh.query_elem_ptr(halo_pair.second))
+//          _halo_ids[halo_pair.first].emplace(std::make_pair(halo_pair.second, halo_pair.first));
+//      }
+//    }
 
     // Finally remove halo markings from stitch regions
     for (const auto & grain : _feature_sets)

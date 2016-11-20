@@ -23,7 +23,6 @@ class EBSDMesh : public GeneratedMesh
 {
 public:
   EBSDMesh(const InputParameters & parameters);
-  virtual ~EBSDMesh();
 
   virtual void buildMesh();
 
