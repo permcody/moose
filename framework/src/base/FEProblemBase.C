@@ -1651,6 +1651,10 @@ FEProblemBase::duplicateVariableCheck(const std::string & var_name,
                  var_name,
                  "' already exists but is of a differing type!");
 
+    mooseWarning(error_prefix,
+                 "Variable with name '",
+                 var_name,
+                 "' was already added by another block or Action.");
     return true;
   }
 

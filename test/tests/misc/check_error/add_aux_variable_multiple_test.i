@@ -12,7 +12,7 @@
 [AuxVariables]
   [./q]
     family = MONOMIAL
-    order = third
+    order = THIRD
   [../]
 []
 

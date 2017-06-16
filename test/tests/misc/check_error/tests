@@ -17,17 +17,25 @@
     expect_err = "quotes around a vector"
   [../]
 
-  [./add_aux_variable_multiple_test]
+  [./add_aux_variable_multiple_diff_test]
     type = 'RunException'
     input = 'add_aux_variable_multiple_test.i'
     expect_err = "AuxVariable with name 'q' already exists but is of a differing type!"
   [../]
 
-  [./add_aux_scalar_variable_multiple_test]
+  [./add_aux_scalar_variable_multiple_diff_test]
     type = 'RunException'
     input = 'add_aux_variable_multiple_test.i'
     cli_args = 'Variables/q/family=SCALAR MoreAuxVariables/q/family=SCALAR'
     expect_err = "AuxVariable with name 'q' already exists but is of a differing type!"
+  [../]
+
+  [./add_aux_variable_multiple_same_test]
+    type = 'RunApp'
+    input = 'add_aux_variable_multiple_test.i'
+    cli_args = 'MoreAuxVariables/q/order=THIRD'
+    expect_out = "AuxVariable with name 'q' was already added by another block or Action."
+    allow_warnings = true
   [../]
 
   [./bad_bc_test]
