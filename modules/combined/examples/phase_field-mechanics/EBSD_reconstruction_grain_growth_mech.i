@@ -59,11 +59,30 @@
   [../]
 []
 
+[UserObjects]
+  [./ebsd_reader]
+    type = EBSDReader
+  [../]
+  [./ebsd]
+    type = PolycrystalEBSD
+    coloring_algorithm = bt
+    ebsd_reader = ebsd_reader
+  [../]
+  [./grain_tracker]
+    type = GrainTrackerElasticity
+    compute_var_to_feature_map = true
+    polycrystal_ic_uo = ebsd
+
+    fill_method = symmetric9
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
+    euler_angle_provider = ebsd_reader
+  [../]
+[]
+
 [ICs]
   [./PolycrystalICs]
-    [./ReconVarIC]
-      ebsd_reader = ebsd
-      coloring_algorithm = bt
+    [./PolycrystalColoringIC]
+      polycrystal_ic_uo = ebsd
     [../]
   [../]
 []
@@ -117,7 +136,7 @@
   [./phi1]
     type = OutputEulerAngles
     variable = phi1
-    euler_angle_provider = ebsd
+    euler_angle_provider = ebsd_reader
     grain_tracker = grain_tracker
     output_euler_angle = 'phi1'
     execute_on = 'initial'
@@ -125,7 +144,7 @@
   [./Phi]
     type = OutputEulerAngles
     variable = Phi
-    euler_angle_provider = ebsd
+    euler_angle_provider = ebsd_reader
     grain_tracker = grain_tracker
     output_euler_angle = 'Phi'
     execute_on = 'initial'
@@ -133,7 +152,7 @@
   [./phi2]
     type = OutputEulerAngles
     variable = phi2
-    euler_angle_provider = ebsd
+    euler_angle_provider = ebsd_reader
     grain_tracker = grain_tracker
     output_euler_angle = 'phi2'
     execute_on = 'initial'
@@ -141,7 +160,7 @@
   [./grain_aux]
     type = EBSDReaderPointDataAux
     variable = EBSD_grain
-    ebsd_reader = ebsd
+    ebsd_reader = ebsd_reader
     data_name = 'feature_id'
     execute_on = 'initial'
   [../]
@@ -172,7 +191,7 @@
   [./PhaseField]
     [./EulerAngles2RGB]
       crystal_structure = cubic
-      euler_angle_provider = ebsd
+      euler_angle_provider = ebsd_reader
       grain_tracker = grain_tracker
     [../]
   [../]
@@ -221,21 +240,6 @@
   [../]
   [./DOFs]
     type = NumDOFs
-  [../]
-[]
-
-[UserObjects]
-  [./ebsd]
-    type = EBSDReader
-  [../]
-  [./grain_tracker]
-    type = GrainTrackerElasticity
-    compute_var_to_feature_map = true
-    ebsd_reader = ebsd
-
-    fill_method = symmetric9
-    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
-    euler_angle_provider = ebsd
   [../]
 []
 
