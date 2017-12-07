@@ -69,6 +69,33 @@ Factory::create(const std::string & obj_name,
   // Check to make sure that all required parameters are supplied
   params.checkParams(name);
 
+  InputParameters orig_params = getValidParams(obj_name);
+  if (orig_params.n_parameters() != parameters.n_parameters())
+  {
+    std::set<std::string> orig, populated;
+    for (const auto & it : orig_params)
+      orig.emplace(it.first);
+    for (const auto & it : parameters)
+
+      // HACK to ignore parser params and parser_syntax (should be cleaned up)
+      if (it.first[0] != '_' && it.first != "parser_syntax")
+        populated.emplace(it.first);
+
+    std::set<std::string> diff;
+    std::set_difference(populated.begin(),
+                        populated.end(),
+                        orig.begin(),
+                        orig.end(),
+                        std::inserter(diff, diff.begin()));
+
+    if (!diff.empty())
+    {
+      for (const auto & name : diff)
+        std::cout << name << ' ';
+      mooseError("Different number of parameters");
+    }
+  }
+
   // register type name as constructed
   _constructed_types.insert(obj_name);
 

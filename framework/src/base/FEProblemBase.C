@@ -144,6 +144,13 @@ validParams<FEProblemBase>()
                         "True to skip additional data in equation system for restart. It is useful "
                         "for starting a transient calculation with a steady-state solution");
 
+#ifdef LIBMESH_HAVE_PETSC
+  // put in empty arrays for PETSc options
+  params.set<MultiMooseEnum>("petsc_options") = MultiMooseEnum("", "", true);
+  params.set<std::vector<std::string>>("petsc_inames") = std::vector<std::string>();
+  params.set<std::vector<std::string>>("petsc_values") = std::vector<std::string>();
+#endif
+
   return params;
 }
 
