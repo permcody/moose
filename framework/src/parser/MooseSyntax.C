@@ -47,6 +47,7 @@ associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   registerSyntax("CreateDisplacedProblemAction", "Mesh");
   registerSyntax("AddMeshModifierAction", "MeshModifiers/*");
   registerSyntax("AddMortarInterfaceAction", "Mesh/MortarInterfaces/*");
+  registerSyntax("AddNewMortarInterfaceAction", "Mesh/NewMortarInterfaces/*");
 
   registerSyntax("AddFunctionAction", "Functions/*");
   syntax.registerSyntaxType("Functions/*", "FunctionName");

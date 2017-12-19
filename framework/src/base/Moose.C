@@ -51,6 +51,7 @@
 #include "AssignSubdomainID.h"
 #include "MeshSideSet.h"
 #include "AddSideSetsFromBoundingBox.h"
+#include "MortarMeshGenerator.h"
 
 // problems
 #include "DisplacedProblem.h"
@@ -441,6 +442,7 @@
 #include "SetupTimeIntegratorAction.h"
 #include "SetupPredictorAction.h"
 #include "AddMortarInterfaceAction.h"
+#include "AddNewMortarInterfaceAction.h"
 #include "SetupPostprocessorDataAction.h"
 #include "MaterialOutputAction.h"
 #include "CheckOutputAction.h"
@@ -544,6 +546,7 @@ registerObjects(Factory & factory)
   registerMeshModifier(AssignSubdomainID);
   registerMeshModifier(MeshSideSet);
   registerMeshModifier(AddSideSetsFromBoundingBox);
+  registerMeshModifier(MortarMeshGenerator);
 
   // problems
   registerProblem(DisplacedProblem);
@@ -1168,6 +1171,10 @@ registerActions(Syntax & syntax, ActionFactory & action_factory)
   registerAction(SetupMeshCompleteAction, "prepare_mesh");
   registerAction(AddMeshModifierAction, "add_mesh_modifier");
   registerAction(AddMortarInterfaceAction, "add_mortar_interface");
+
+  registerAction(AddNewMortarInterfaceAction, "add_mortar_interface");
+  registerAction(AddNewMortarInterfaceAction, "add_mesh_modifier");
+
   registerAction(SetupMeshCompleteAction, "execute_mesh_modifiers");
   registerAction(SetupMeshCompleteAction, "uniform_refine_mesh");
   registerAction(SetupMeshCompleteAction, "setup_mesh_complete");

@@ -213,7 +213,7 @@ public:
 
   // The amount by which elements in the boundary subdomains
   // are offset from their respective interior parent's subdomain ids.
-  const subdomain_id_type boundary_subdomain_id_offset = 1000;
+  static const subdomain_id_type boundary_subdomain_id_offset = 1000;
 
   // The slave/master lower-dimensional boundary subdomain ids are the
   // slave/master *boundary* ids offset by the value above.
