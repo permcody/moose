@@ -1072,6 +1072,7 @@ addActionTypes(Syntax & syntax)
                            "(check_copy_nodal_vars)"
                            "(setup_mesh)"
                            "(add_partitioner)"
+                           "(add_mortar_problem)"
                            "(add_geometric_rm)"
                            "(init_mesh)"
                            "(prepare_mesh)"
@@ -1173,7 +1174,7 @@ registerActions(Syntax & syntax, ActionFactory & action_factory)
   registerAction(AddMortarInterfaceAction, "add_mortar_interface");
 
   registerAction(AddNewMortarInterfaceAction, "add_mortar_interface");
-  registerAction(AddNewMortarInterfaceAction, "add_mesh_modifier");
+  registerAction(AddNewMortarInterfaceAction, "add_mortar_problem");
 
   registerAction(SetupMeshCompleteAction, "execute_mesh_modifiers");
   registerAction(SetupMeshCompleteAction, "uniform_refine_mesh");

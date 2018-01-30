@@ -97,8 +97,8 @@ loop_body(const ElemSideBCTriple & triple,
 
 } // end anonymous namespace
 
-AutomaticMortarGeneration::AutomaticMortarGeneration(EquationSystems & es_in)
-  : equation_systems(es_in), mesh(es_in.get_mesh()), mortar_segment_mesh(es_in.comm()), h_max(0.)
+AutomaticMortarGeneration::AutomaticMortarGeneration(MooseMesh & mesh)
+  : mesh(mesh), mortar_segment_mesh(mesh.comm()), h_max(0.)
 {
 }
 

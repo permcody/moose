@@ -33,36 +33,38 @@ InputParameters
 validParams<MortarProblem>()
 {
   InputParameters params = validParams<SubProblem>();
-  params.addPrivateParam<std::vector<std::string>>("displacements");
+
+  params.registerRelationshipManagers("AugmentSparsityOnInterface");
+
+  params.addPrivateParam<MooseMesh *>("mesh");
   return params;
 }
 
 MortarProblem::MortarProblem(const InputParameters & parameters)
-  : SubProblem(parameters),
-    _fe_problem(parameters.have_parameter<FEProblemBase *>("_fe_problem_base")
-                    ? *getParam<FEProblemBase *>("_fe_problem_base")
-                    : *getParam<FEProblem *>("_fe_problem")),
-    _mesh(*getParam<MooseMesh *>("mesh")),
-    _eq(_fe_problem.es())
+  : SubProblem(parameters), _mesh(*getCheckedPointerParam<MooseMesh *>("mesh")), _amg(_mesh)
 {
+  addLowerDimensionalElements();
 }
 
 bool
 MortarProblem::isTransient() const
 {
-  return _fe_problem.isTransient();
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->isTransient();
 }
 
 Moose::CoordinateSystemType
 MortarProblem::getCoordSystem(SubdomainID sid)
 {
-  return _fe_problem.getCoordSystem(sid);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getCoordSystem(sid);
 }
 
 std::set<dof_id_type> &
 MortarProblem::ghostedElems()
 {
-  return _fe_problem.ghostedElems();
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->ghostedElems();
 }
 
 void
@@ -98,31 +100,36 @@ MortarProblem::updateMesh(const NumericVector<Number> & /*soln*/,
 bool
 MortarProblem::hasVariable(const std::string & var_name)
 {
-  return _fe_problem.hasVariable(var_name);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->hasVariable(var_name);
 }
 
 MooseVariable &
 MortarProblem::getVariable(THREAD_ID tid, const std::string & var_name)
 {
-  return _fe_problem.getVariable(tid, var_name);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getVariable(tid, var_name);
 }
 
 bool
 MortarProblem::hasScalarVariable(const std::string & var_name)
 {
-  return _fe_problem.hasScalarVariable(var_name);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->hasScalarVariable(var_name);
 }
 
 MooseVariableScalar &
 MortarProblem::getScalarVariable(THREAD_ID tid, const std::string & var_name)
 {
-  return _fe_problem.getScalarVariable(tid, var_name);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getScalarVariable(tid, var_name);
 }
 
 System &
 MortarProblem::getSystem(const std::string & var_name)
 {
-  return _fe_problem.getSystem(var_name);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getSystem(var_name);
 }
 
 void
@@ -464,26 +471,28 @@ MortarProblem::prepareNeighborShapes(unsigned int /*var*/, THREAD_ID /*tid*/)
 GeometricSearchData &
 MortarProblem::geomSearchData()
 {
-  return _fe_problem.geomSearchData();
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->geomSearchData();
 }
 
 Assembly &
 MortarProblem::assembly(THREAD_ID tid)
 {
-  return _fe_problem.assembly(tid);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->assembly(tid);
 }
 
 void
 MortarProblem::updateGeomSearch(GeometricSearchData::GeometricSearchType type)
 {
-  _fe_problem.geomSearchData().update(type);
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  _fe_problem->geomSearchData().update(type);
 }
 
 void
 MortarProblem::meshChanged()
 {
   // mesh changed
-  _eq.reinit();
   _mesh.meshChanged();
 }
 
@@ -512,13 +521,15 @@ MortarProblem::solve()
 bool
 MortarProblem::converged()
 {
-  return _fe_problem.converged();
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->converged();
 }
 
 bool
 MortarProblem::computingInitialResidual()
 {
-  return _fe_problem.computingInitialResidual();
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->computingInitialResidual();
 }
 
 void
@@ -531,4 +542,132 @@ void
 MortarProblem::onTimestepEnd()
 {
   // Nothing to do
+}
+
+Void
+MortarProblem::addLowerDimensionalElements()
+{
+  MeshBase & mesh = _mesh.getMesh();
+
+  // Temporary storage to catch ids handed back by the BoundaryInfo object.
+  std::vector<boundary_id_type> side_ids;
+
+  // A reference to the Mesh's BoundaryInfo object
+  BoundaryInfo & bi = mesh.get_boundary_info();
+
+  // Data structures to store results of calling BoundaryInfo::build_side_list().
+  std::vector<dof_id_type> element_id_list;
+  std::vector<unsigned short int> side_list;
+  std::vector<boundary_id_type> bc_id_list;
+
+  // Get lists of (elem, side, id) triplets.
+  bi.build_side_list(element_id_list, side_list, bc_id_list);
+
+  // We'll build up a list of lower-dimensional (Elem,side) pairs
+  // to be added in the loop, then add them afterword. We don't
+  // want to add Elems while iterating because that may invalidate
+  // iterators due to reallocation.
+  std::vector<ElemSideBCTriple> slave_sides_to_add;
+  std::vector<ElemSideBCTriple> master_sides_to_add;
+
+  const auto slave_ids = _mesh.getBoundaryIDs(_slave);
+  const auto master_ids = _mesh.getBoundaryIDs(_master);
+
+  for (auto i = beginIndex(element_id_list); i < element_id_list.size(); ++i)
+  {
+    if (std::find(slave_ids.begin(), slave_ids.end(), bc_id_list[i]) != slave_ids.end())
+      slave_sides_to_add.emplace_back(
+          mesh.elem_ptr(element_id_list[i]), side_list[i], bc_id_list[i]);
+
+    if (std::find(master_ids.begin(), master_ids.end(), bc_id_list[i]) != master_ids.end())
+      master_sides_to_add.emplace_back(
+          mesh.elem_ptr(element_id_list[i]), side_list[i], bc_id_list[i]);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Now add lower-dimensional elements on the slave side.
+  ////////////////////////////////////////////////////////////////////////////////
+  {
+    std::set<subdomain_id_type> added_slave_subdomain_ids;
+
+    for (const auto & triple : slave_sides_to_add)
+    {
+      const Elem * added_side = loopBody(triple, added_slave_subdomain_ids);
+
+      // Keep track of max lower-dimensional element size on the slave side.
+      _h_max = std::max(_h_max, added_side->volume());
+    }
+
+    // Associate added subdomain ids with unique names.
+    for (const auto & sid : added_slave_subdomain_ids)
+    {
+      std::ostringstream oss;
+      oss << "lower_dimensional_subdomain_" << sid;
+      mesh.subdomain_name(sid) = oss.str();
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Now add lower-dimensional elements on the master side.
+  ////////////////////////////////////////////////////////////////////////////////
+  {
+    std::set<subdomain_id_type> added_master_subdomain_ids;
+
+    for (const auto & triple : master_sides_to_add)
+    {
+      loopBody(triple, added_master_subdomain_ids);
+    }
+
+    // Associate added subdomain ids with unique names.
+    for (const auto & sid : added_master_subdomain_ids)
+    {
+      std::ostringstream oss;
+      oss << "lower_dimensional_subdomain_" << sid;
+      mesh.subdomain_name(sid) = oss.str();
+    }
+  }
+
+  // Now that we have added lower-dimensional elements to the Mesh,
+  // we need to call find_neighbors() to set up their neighbor
+  // pointers.
+  // mesh.find_neighbors();
+}
+
+const Elem *
+MortarProblem::loopBody(const ElemSideBCTriple & triple, std::set<subdomain_id_type> & added_ids)
+{
+  Elem * elem = triple._elem;
+  unsigned int side = triple._side;
+  boundary_id_type bc_id = triple._bc_id;
+
+  // Build a non-proxy element from this side.
+  std::unique_ptr<Elem> side_elem(elem->build_side_ptr(side, /*proxy=*/false));
+
+  // The side will be added with the same processor id as the parent.
+  side_elem->processor_id() = elem->processor_id();
+
+  // The side should have a different subdomain id than the
+  // parent, so that we can distinguish them and define
+  // subdomain-restricted variables on them. Currently we just
+  // offset the value by a constant amount.
+  subdomain_id_type added_elem_subdomain_id =
+      cast_int<subdomain_id_type>(AutomaticMortarGeneration::boundary_subdomain_id_offset + bc_id);
+  side_elem->subdomain_id() = added_elem_subdomain_id;
+
+  // We'll want to associate a name with this id later.
+  added_ids.insert(added_elem_subdomain_id);
+
+  // Also assign the side's interior parent, so it is always
+  // easy to figure out the Elem we came from.
+  side_elem->set_interior_parent(elem);
+
+  // Finally, add the lower-dimensional element to the Mesh.
+  const Elem * added_side = _mesh_ptr->getMesh().add_elem(side_elem.release());
+
+  // Also keep track of the mapping in the other direction:
+  // given a lower-dimensional element, we should be able to
+  // figure out what side of the parent we were.
+  _lower_elem_to_side_id[added_side] = side;
+
+  return added_side;
 }

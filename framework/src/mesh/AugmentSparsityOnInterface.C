@@ -18,15 +18,19 @@
 // libMesh includes
 #include "libmesh/elem.h"
 
-AugmentSparsityOnInterface::AugmentSparsityOnInterface(AutomaticMortarGeneration & amg) : _amg(amg)
+AugmentSparsityOnInterface::AugmentSparsityOnInterface(const InputParameters & parameters)
+  : GeometricRelationshipManager(parameters),
+    _amg(*getCheckedPointerParam<AutomaticMortarGeneration *>("amg", "AMG is nullptr"))
 {
 }
 
-void
-AugmentSparsityOnInterface::mesh_reinit()
+void AugmentSparsityOnInterface::attachRelationshipManagersInternal(
+    Moose::RelationshipManagerType /*rm_type*/)
 {
-  // This might eventually be where the mortar segment mesh and all the other data
-  // structures get rebuilt?
+  if (_mesh.isDistributedMesh())
+  {
+    attachGeometricFunctorHelper(*this);
+  }
 }
 
 void

@@ -56,7 +56,7 @@ public:
    * Must be constructed with a reference to the Mesh we are
    * generating mortar spaces for.
    */
-  AutomaticMortarGeneration(EquationSystems & es_in);
+  AutomaticMortarGeneration(MooseMesh & mesh);
 
   /**
    * Read the --master-slave-pairs command line option, which specifies

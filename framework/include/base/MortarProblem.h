@@ -18,6 +18,7 @@
 #include "SubProblem.h"
 #include "DisplacedSystem.h"
 #include "GeometricSearchData.h"
+#include "AutomaticMortarGeneration.h"
 
 // libMesh
 #include "libmesh/equation_systems.h"
@@ -46,7 +47,25 @@ class MortarProblem : public SubProblem
 public:
   MortarProblem(const InputParameters & parameters);
 
-  virtual EquationSystems & es() override { return _eq; }
+  // Used to temporarily store information about which lower-dimensional
+  // sides to add and what subdomain id to use for the added sides.
+  struct ElemSideBCTriple
+  {
+    ElemSideBCTriple(Elem * elem_in, unsigned short int side_in, boundary_id_type bc_id_in)
+      : elem(elem_in), side(side_in), bc_id(bc_id_in)
+    {
+    }
+
+    Elem * elem;
+    unsigned short int side;
+    boundary_id_type bc_id;
+  };
+
+  virtual EquationSystems & es() override
+  {
+    mooseAssert(_eq, "EquationSystems is nullptr");
+    return *_eq;
+  }
   virtual MooseMesh & mesh() override { return _mesh; }
   MooseMesh & refMesh();
 
@@ -230,10 +249,18 @@ public:
    */
   virtual void ghostGhostedBoundaries() override;
 
+  const AutomaticMortarGeneration & getAMG() const { return _amg; }
+
 protected:
-  FEProblemBase & _fe_problem;
+  void addLowerDimensionalElements();
+
+  const Elem * loopBody(const ElemSideBCTriple & triple, std::set<subdomain_id_type> & added_ids);
+
   MooseMesh & _mesh;
-  EquationSystems & _eq;
+  FEProblemBase * _fe_problem;
+  EquationSystems * _eq;
+
+  AutomaticMortarGeneration _amg;
 };
 
 #endif /* MORTARPROBLEM_H */
