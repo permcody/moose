@@ -25,7 +25,8 @@
 #include "libmesh/enum_quadrature_type.h"
 
 // Forward declarations
-class MooseVariable;
+typedef MooseVariableField<Real> MooseVariable;
+
 class AssemblyData;
 class MortarProblem;
 class MooseMesh;
@@ -52,13 +53,13 @@ public:
   struct ElemSideBCTriple
   {
     ElemSideBCTriple(Elem * elem_in, unsigned short int side_in, boundary_id_type bc_id_in)
-      : elem(elem_in), side(side_in), bc_id(bc_id_in)
+      : _elem(elem_in), _side(side_in), _bc_id(bc_id_in)
     {
     }
 
-    Elem * elem;
-    unsigned short int side;
-    boundary_id_type bc_id;
+    Elem * _elem;
+    unsigned short int _side;
+    boundary_id_type _bc_id;
   };
 
   virtual EquationSystems & es() override
@@ -68,13 +69,6 @@ public:
   }
   virtual MooseMesh & mesh() override { return _mesh; }
   MooseMesh & refMesh();
-
-  /**
-   * Whether or not this problem should utilize FE shape function caching.
-   *
-   * @param fe_cache True for using the cache false for not.
-   */
-  virtual void useFECache(bool fe_cache) override;
 
   virtual void init() override;
   virtual void solve() override;
@@ -97,9 +91,12 @@ public:
   virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid) override;
 
   // Variables /////
-  virtual bool hasVariable(const std::string & var_name) override;
-  virtual MooseVariable & getVariable(THREAD_ID tid, const std::string & var_name) override;
-  virtual bool hasScalarVariable(const std::string & var_name) override;
+  virtual bool hasVariable(const std::string & var_name) const override;
+  virtual MooseVariableFE & getVariable(THREAD_ID tid, const std::string & var_name) override;
+  virtual MooseVariable & getStandardVariable(THREAD_ID tid, const std::string & var_name) override;
+  virtual VectorMooseVariable & getVectorVariable(THREAD_ID tid,
+                                                  const std::string & var_name) override;
+  virtual bool hasScalarVariable(const std::string & var_name) const override;
   virtual MooseVariableScalar & getScalarVariable(THREAD_ID tid,
                                                   const std::string & var_name) override;
   virtual System & getSystem(const std::string & var_name) override;
@@ -222,7 +219,7 @@ public:
 
   virtual GeometricSearchData & geomSearchData() override;
 
-  virtual bool computingInitialResidual() override;
+  virtual bool computingInitialResidual() const override;
 
   virtual void onTimestepBegin() override;
   virtual void onTimestepEnd() override;

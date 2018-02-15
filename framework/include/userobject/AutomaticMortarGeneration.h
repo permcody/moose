@@ -38,6 +38,7 @@ class MeshBase;
 class Elem;
 }
 class GetPot;
+class MooseMesh;
 
 /**
  * This class is a container/interface for the objects involved in
@@ -152,7 +153,7 @@ public:
 
   // EquationSystems object that will be used in constructing the
   // nodal normals. Must be constructed with a reference to the mesh.
-  EquationSystems & equation_systems;
+  EquationSystems * equation_systems;
 
   // Reference to the mesh stored in equation_systems.
   MeshBase & mesh;

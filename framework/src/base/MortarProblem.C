@@ -68,12 +68,6 @@ MortarProblem::ghostedElems()
 }
 
 void
-MortarProblem::useFECache(bool /*fe_cache*/)
-{
-  // Nothing to do, but must override
-}
-
-void
 MortarProblem::init()
 {
   Moose::perf_log.push("MortarProblem::init::meshChanged()", "Setup");
@@ -98,21 +92,35 @@ MortarProblem::updateMesh(const NumericVector<Number> & /*soln*/,
 }
 
 bool
-MortarProblem::hasVariable(const std::string & var_name)
+MortarProblem::hasVariable(const std::string & var_name) const
 {
   mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
   return _fe_problem->hasVariable(var_name);
 }
 
-MooseVariable &
+MooseVariableFE &
 MortarProblem::getVariable(THREAD_ID tid, const std::string & var_name)
 {
   mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
   return _fe_problem->getVariable(tid, var_name);
 }
 
+MooseVariable &
+MortarProblem::getStandardVariable(THREAD_ID tid, const std::string & var_name)
+{
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getStandardVariable(tid, var_name);
+}
+
+VectorMooseVariable &
+MortarProblem::getVectorVariable(THREAD_ID tid, const std::string & var_name)
+{
+  mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
+  return _fe_problem->getVectorVariable(tid, var_name);
+}
+
 bool
-MortarProblem::hasScalarVariable(const std::string & var_name)
+MortarProblem::hasScalarVariable(const std::string & var_name) const
 {
   mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
   return _fe_problem->hasScalarVariable(var_name);
@@ -526,7 +534,7 @@ MortarProblem::converged()
 }
 
 bool
-MortarProblem::computingInitialResidual()
+MortarProblem::computingInitialResidual() const
 {
   mooseAssert("_fe_problem", "FEProblem pointer is nullptr");
   return _fe_problem->computingInitialResidual();
@@ -544,9 +552,12 @@ MortarProblem::onTimestepEnd()
   // Nothing to do
 }
 
-Void
+void
 MortarProblem::addLowerDimensionalElements()
 {
+  // TODO: Add this method back in, need to add appropriate member types
+
+  /*
   MeshBase & mesh = _mesh.getMesh();
 
   // Temporary storage to catch ids handed back by the BoundaryInfo object.
@@ -631,6 +642,7 @@ MortarProblem::addLowerDimensionalElements()
   // we need to call find_neighbors() to set up their neighbor
   // pointers.
   // mesh.find_neighbors();
+   */
 }
 
 const Elem *
@@ -662,12 +674,12 @@ MortarProblem::loopBody(const ElemSideBCTriple & triple, std::set<subdomain_id_t
   side_elem->set_interior_parent(elem);
 
   // Finally, add the lower-dimensional element to the Mesh.
-  const Elem * added_side = _mesh_ptr->getMesh().add_elem(side_elem.release());
+  const Elem * added_side = _mesh.getMesh().add_elem(side_elem.release());
 
   // Also keep track of the mapping in the other direction:
   // given a lower-dimensional element, we should be able to
   // figure out what side of the parent we were.
-  _lower_elem_to_side_id[added_side] = side;
+  //_lower_elem_to_side_id[added_side] = side;
 
   return added_side;
 }

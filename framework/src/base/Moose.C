@@ -57,6 +57,7 @@
 #include "DisplacedProblem.h"
 #include "FEProblem.h"
 #include "EigenProblem.h"
+#include "MortarProblem.h"
 
 // kernels
 #include "ConservativeAdvection.h"
@@ -552,6 +553,7 @@ registerObjects(Factory & factory)
   registerProblem(DisplacedProblem);
   registerProblem(FEProblem);
   registerProblem(EigenProblem);
+  registerProblem(MortarProblem);
 
   // kernels
   registerKernel(TimeDerivative);

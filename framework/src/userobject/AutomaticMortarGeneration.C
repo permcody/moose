@@ -17,6 +17,7 @@
 #include "SetsIntersect.h"
 #include "MortarSegmentInfo.h"
 #include "NanoflannMeshAdaptor.h"
+#include "MooseMesh.h"
 
 // libMesh headers
 #include "libmesh/quadrature_gauss.h"

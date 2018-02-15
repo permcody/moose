@@ -17,6 +17,7 @@
 #include "FEProblem.h"
 #include "MooseMesh.h"
 #include "MooseTypes.h"
+#include "MortarProblem.h"
 
 template <>
 InputParameters
@@ -46,14 +47,15 @@ AddNewMortarInterfaceAction::AddNewMortarInterfaceAction(InputParameters paramet
 void
 AddNewMortarInterfaceAction::act()
 {
-  if (_current_task = "add_mortar_problem")
+  if (_current_task == "add_mortar_problem")
   {
     InputParameters object_params = _factory.getValidParams("MortarProblem");
     object_params.set<MooseMesh *>("mesh") = _mesh.get();
     auto mortar_problem =
         _factory.create<MortarProblem>("MortarProblem", "MortarProblem", object_params);
 
-    _app.addMortarProblem(std::move(mortar_problem));
+    // TODO: Need to attach this somewhere.
+    //_app.addMortarProblem(std::move(mortar_problem));
   }
   //  else if (_current_task = "")
   //
