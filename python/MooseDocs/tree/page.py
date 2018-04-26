@@ -113,14 +113,16 @@ class LocationNodeBase(PageNodeBase):
                 nodes.update(CACHE[key])
 
         if (maxcount is not None) and exc and (len(nodes) > maxcount):
-            msg = "The 'maxcount' was set to {} but {} nodes were found for the name '{}'." \
+            msg = "The maximum number of required markdown pages was set to {} but {} pages were " \
+                  "found for the name '{}'."
                   .format(maxcount, len(nodes), name)
             for node in nodes:
                 msg += '\n  {} (source: {})'.format(node.local, node.source)
             raise exc(msg)
 
         elif (mincount is not None) and exc and (len(nodes) < mincount):
-            msg = "The 'mincount' was set to {} but {} nodes were found for the name '{}'." \
+            msg = "The minimum number of required markdown pages was set to {} but {} pages were " \
+                  "found for the name '{}'." \
                   .format(mincount, len(nodes), name)
             for node in nodes:
                 msg += '\n  {} (source: {})'.format(node.local, node.source)
