@@ -14,6 +14,7 @@
 #include "MooseMesh.h"
 #include "SubProblem.h"
 #include "UserObject.h"
+#include "Restartable.h"
 
 #include "libmesh/mesh_tools.h"
 #include "libmesh/point.h"
@@ -54,7 +55,7 @@ validParams<LayeredBase>()
   return params;
 }
 
-LayeredBase::LayeredBase(const InputParameters & parameters)
+LayeredBase::LayeredBase(const InputParameters & parameters, Restartable & restartable)
   : _layered_base_name(parameters.get<std::string>("_object_name")),
     _layered_base_params(parameters),
     _direction_enum(parameters.get<MooseEnum>("direction")),
@@ -62,6 +63,7 @@ LayeredBase::LayeredBase(const InputParameters & parameters)
     _sample_type(parameters.get<MooseEnum>("sample_type")),
     _average_radius(parameters.get<unsigned int>("average_radius")),
     _using_displaced_mesh(_layered_base_params.get<bool>("use_displaced_mesh")),
+    _restartable(restartable),
     _layered_base_subproblem(*parameters.getCheckedPointerParam<SubProblem *>("_subproblem")),
     _cumulative(parameters.get<bool>("cumulative"))
 {

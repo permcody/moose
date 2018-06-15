@@ -19,6 +19,7 @@ class InputParameters;
 class LayeredBase;
 class SubProblem;
 class UserObject;
+class Restartable;
 
 namespace libMesh
 {
@@ -39,7 +40,7 @@ InputParameters validParams<LayeredBase>();
 class LayeredBase
 {
 public:
-  LayeredBase(const InputParameters & parameters);
+  LayeredBase(const InputParameters & parameters, Restartable & restartable);
 
   /**
    * Given a Point return the integral value associated with the layer that point falls in.
@@ -113,6 +114,8 @@ protected:
   Real _direction_max;
 
 private:
+  Restartable & _restartable;
+
   /// Value of the integral for each layer
   std::vector<Real> _layer_values;
 

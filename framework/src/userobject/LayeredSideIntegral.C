@@ -21,7 +21,7 @@ validParams<LayeredSideIntegral>()
 }
 
 LayeredSideIntegral::LayeredSideIntegral(const InputParameters & parameters)
-  : SideIntegralVariableUserObject(parameters), LayeredBase(parameters)
+  : SideIntegralVariableUserObject(parameters), LayeredBase(parameters, *this)
 {
 }
 

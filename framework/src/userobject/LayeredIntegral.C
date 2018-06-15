@@ -23,7 +23,7 @@ validParams<LayeredIntegral>()
 }
 
 LayeredIntegral::LayeredIntegral(const InputParameters & parameters)
-  : ElementIntegralVariableUserObject(parameters), LayeredBase(parameters)
+  : ElementIntegralVariableUserObject(parameters), LayeredBase(parameters, *this)
 {
 }
 
