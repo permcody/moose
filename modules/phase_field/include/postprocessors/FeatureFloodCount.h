@@ -648,10 +648,13 @@ protected:
   std::vector<unsigned int> _empty_var_to_features;
 
   /// Determines if the flood counter is elements or not (nodes)
-  bool _is_elemental;
+  const bool _is_elemental;
 
   /// Convenience variable for testing master rank
-  bool _is_master;
+  const bool _is_master;
+
+  /// Keeps on track of whether we are distributing the merge work
+  const bool _distribute_merge_work;
 };
 
 template <>

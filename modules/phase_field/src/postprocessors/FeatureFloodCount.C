@@ -193,7 +193,8 @@ FeatureFloodCount::FeatureFloodCount(const InputParameters & parameters)
                                : _real_zero),
     _halo_ids(_maps_size),
     _is_elemental(getParam<MooseEnum>("flood_entity_type") == "ELEMENTAL"),
-    _is_master(processor_id() == 0)
+    _is_master(processor_id() == 0),
+    _distribute_merge_work(_app.n_processors() >= _n_vars)
 {
   if (_var_index_mode)
     _var_index_maps.resize(_maps_size);
@@ -349,9 +350,19 @@ FeatureFloodCount::communicateAndMerge()
                                     send_buffers.end(),
                                     std::back_inserter(recv_buffers));
 
-  if (_is_master)
+  if (_distribute_merge_work)
   {
-    // The root process now needs to deserialize and merge all of the data
+    Parallel::MessageTag message_tag = _communicator.get_unique_tag(2525);
+
+    if (_is_master)
+      for (processor_id_type proc_id = 1; proc_id < _n_vars; ++proc_id)
+        _communicator.send(proc_id, recv_buffers, message_tag);
+    else
+      _communicator.receive(0, recv_buffers, message_tag);
+  }
+
+  if (!recv_buffers.empty())
+  {
     deserialize(recv_buffers);
     recv_buffers.clear();
 
@@ -359,6 +370,8 @@ FeatureFloodCount::communicateAndMerge()
   }
 
   // Make sure that feature count is communicated to all ranks
+
+  // TODO: Fix this
   _communicator.broadcast(_feature_count);
 }
 
@@ -828,8 +841,8 @@ FeatureFloodCount::deserialize(std::vector<std::string> & serialized_buffers)
   // The input string stream used for deserialization
   std::istringstream iss;
 
-  mooseAssert(serialized_buffers.size() == _app.n_processors(),
-              "Unexpected size of serialized_buffers: " << serialized_buffers.size());
+  // mooseAssert(serialized_buffers.size() == _app.n_processors(),
+  //            "Unexpected size of serialized_buffers: " << serialized_buffers.size());
   auto rank = processor_id();
   for (auto proc_id = beginIndex(serialized_buffers); proc_id < serialized_buffers.size();
        ++proc_id)
@@ -855,7 +868,14 @@ FeatureFloodCount::mergeSets()
   Moose::perf_log.push("mergeSets()", "FeatureFloodCount");
 
   // Since we gathered only on the root process, we only need to merge sets on the root process.
+  // TODO: Fix this
   mooseAssert(_is_master, "mergeSets() should only be called on the root process");
+
+  // If we have distributed merge work, we first need to clear out features that we are not going
+  // to be working with
+  if (_distribute_merge_work)
+  {
+  }
 
   // Local variable used for sizing structures, it will be >= the actual number of features
   for (auto map_num = decltype(_maps_size)(0); map_num < _maps_size; ++map_num)
@@ -1654,7 +1674,8 @@ FeatureFloodCount::FeatureData::merge(FeatureData && rhs)
                  std::insert_iterator<std::set<dof_id_type>>(set_union, set_union.begin()));
   _halo_ids.swap(set_union);
 
-  // Keep track of the original ids so we can notify other processors of the local to global mapping
+  // Keep track of the original ids so we can notify other processors of the local to global
+  // mapping
   _orig_ids.splice(_orig_ids.end(), std::move(rhs._orig_ids));
 
   // Update the min feature id
@@ -1668,7 +1689,8 @@ FeatureFloodCount::FeatureData::merge(FeatureData && rhs)
   mooseAssert((_status & Status::MARKED & Status::DIRTY) == Status::CLEAR,
               "Flags in invalid state");
 
-  // Logical AND here to combine flags (INACTIVE & INACTIVE == INACTIVE, all other combos are CLEAR)
+  // Logical AND here to combine flags (INACTIVE & INACTIVE == INACTIVE, all other combos are
+  // CLEAR)
   _status &= rhs._status;
 
   // Logical OR here to make sure we maintain boundary intersection attribute when joining
