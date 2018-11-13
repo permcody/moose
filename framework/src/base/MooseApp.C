@@ -350,8 +350,8 @@ MooseApp::MooseApp(InputParameters parameters)
     std::stringstream command_stream;
 
     // This will start XTerm and print out some info first... then run the debugger
-    command_stream << "xterm -e \"echo 'Rank: " << processor_id() << "  Hostname: " << hostname
-                   << "  PID: " << getpid() << "'; echo ''; ";
+    command_stream << "xterm -geometry 200x75 -e \"echo 'Rank: " << processor_id()
+                   << "  Hostname: " << hostname << "  PID: " << getpid() << "'; echo ''; ";
 
     // Figure out how to run the debugger
     if (command.find("lldb") != std::string::npos || command.find("gdb") != std::string::npos)

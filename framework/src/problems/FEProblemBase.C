@@ -684,7 +684,7 @@ FEProblemBase::initialSetup()
       _all_materials.initialSetup(tid);
     }
 
-    ConstElemRange & elem_range = *_mesh.getActiveLocalElementRange();
+    const ConstElemRange & elem_range = getEvaluableElementRange();
     ComputeMaterialsObjectThread cmt(*this,
                                      _material_data,
                                      _bnd_material_data,
@@ -838,7 +838,7 @@ FEProblemBase::initialSetup()
       (_material_props.hasStatefulProperties() || _bnd_material_props.hasStatefulProperties() ||
        _neighbor_material_props.hasStatefulProperties()))
   {
-    ConstElemRange & elem_range = *_mesh.getActiveLocalElementRange();
+    const ConstElemRange & elem_range = getEvaluableElementRange();
     ComputeMaterialsObjectThread cmt(*this,
                                      _material_data,
                                      _bnd_material_data,

@@ -21,7 +21,7 @@ validParams<NodalPatchRecovery>()
                              orders,
                              "Polynomial order used in least squares fitting of material property "
                              "over the local patch of elements connected to a given node");
-  params.registerRelationshipManagers("ElementPointNeighbors");
+  params.registerRelationshipManagers("ElementPointNeighbors", "ALGEBRAIC");
   params.addPrivateParam<unsigned short>("element_point_neighbor_layers", 2);
   params.addParamNamesToGroup("patch_polynomial_order", "Advanced");
 
@@ -180,8 +180,8 @@ NodalPatchRecovery::compute()
     mooseError("There are not enough sample points to recover the nodal value, try reducing the "
                "polynomial order or using a higher-order quadrature scheme.");
 
-  // std::cout << " For the node id: " << _current_node->id() << " the following elements are attached: \n";
-  // general treatment for side nodes and internal nodes
+  // std::cout << " For the node id: " << _current_node->id() << " the following elements are
+  // attached: \n"; general treatment for side nodes and internal nodes
   for (auto elem_id : elem_ids)
   {
     std::cout << elem_id << std::endl;
@@ -220,15 +220,13 @@ NodalPatchRecovery::compute()
 
     // _fe_problem.reinitMaterials(elem->subdomain_id(), _tid);
 
-
     const auto & mesh = _subproblem.mesh().getMesh();
-    // for (const auto & elem : _fe_problem.getEvaluableElementRange())
-    for (const auto & elem : mesh.active_element_ptr_range())
+    for (const auto & elem : _fe_problem.getEvaluableElementRange())
+    // for (const auto & elem : mesh.active_element_ptr_range())
     {
       std::cout << (*elem) << std::endl;
       _fe_problem.reinitMaterials(elem->subdomain_id(), _tid);
     }
-
 
     std::cout << "Made it through reiniting the material on this element \n";
 

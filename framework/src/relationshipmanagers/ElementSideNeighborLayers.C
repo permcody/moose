@@ -40,7 +40,9 @@ void
 ElementSideNeighborLayers::attachRelationshipManagersInternal(
     Moose::RelationshipManagerType rm_type)
 {
-  if ((_app.isSplitMesh() || _mesh.isDistributedMesh()) && _element_side_neighbor_layers > 1)
+  if ((rm_type == Moose::RelationshipManagerType::GEOMETRIC &&
+       (_app.isSplitMesh() || _mesh.isDistributedMesh())) ||
+      (rm_type == Moose::RelationshipManagerType::ALGEBRAIC && _element_side_neighbor_layers > 1))
   {
     _default_coupling = libmesh_make_unique<DefaultCoupling>();
     _default_coupling->set_n_levels(_element_side_neighbor_layers);
@@ -60,7 +62,7 @@ ElementSideNeighborLayers::getInfo() const
     std::ostringstream oss;
     std::string layers = _element_side_neighbor_layers == 1 ? "layer" : "layers";
 
-    oss << "ElementSideNeighborLayers (" << _element_side_neighbor_layers << layers << ')';
+    oss << "ElementSideNeighborLayers (" << _element_side_neighbor_layers << ' ' << layers << ')';
     return oss.str();
   }
   return "";
