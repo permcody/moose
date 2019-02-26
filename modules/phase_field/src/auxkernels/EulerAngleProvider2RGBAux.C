@@ -32,6 +32,8 @@ validParams<EulerAngleProvider2RGBAux>()
       "crystal_structure", structure_enum, "Crystal structure of the material");
   MooseEnum output_types = MooseEnum("red green blue scalar", "scalar");
   params.addParam<MooseEnum>("output_type", output_types, "Type of value that will be outputted");
+  params.addCoupledVar("integrated_index",
+                       "The coupled aux variable representing the integrated feature index");
   params.addRequiredParam<UserObjectName>("euler_angle_provider",
                                           "Name of Euler angle provider user object");
   params.addRequiredParam<UserObjectName>("grain_tracker",
@@ -49,6 +51,7 @@ EulerAngleProvider2RGBAux::EulerAngleProvider2RGBAux(const InputParameters & par
     _sd(getParam<MooseEnum>("sd")),
     _xtal_class(getParam<MooseEnum>("crystal_structure")),
     _output_type(getParam<MooseEnum>("output_type")),
+    _integrated_index(isCoupled("integrated_index") ? coupledValue("integrated_index") : _zero),
     _euler(getUserObject<EulerAngleProvider>("euler_angle_provider")),
     _ebsd_reader(isParamValid("phase") ? dynamic_cast<const EBSDReader *>(&_euler) : nullptr),
     _grain_tracker(getUserObject<GrainTracker>("grain_tracker")),
@@ -68,10 +71,26 @@ EulerAngleProvider2RGBAux::getNumGrains() const
 void
 EulerAngleProvider2RGBAux::precalculateValue()
 {
+  // First try (didn't work)
   const auto grain_id =
-      _grain_tracker.getEntityValue(isNodal() ? _current_node->id() : _current_elem->id(),
+    isCoupled("integrated_index")
+        ? _integrated_index[_qp]
+        : _grain_tracker.getEntityValue(isNodal() ? _current_node->id() : _current_elem->id(),
+                                        FeatureFloodCount::FieldType::UNIQUE_REGION,
+                                        0);
+
+
+  /* Second try (still didn't read in integrated index aux var)
+  const auto ffc_id =
+    _grain_tracker.getEntityValue(isNodal() ? _current_node->id() : _current_elem->id(),
                                     FeatureFloodCount::FieldType::UNIQUE_REGION,
                                     0);
+  const auto integrated_id = _integrated_index[_qp];
+  auto grain_id =  isCoupled("integrated_index") ? integrated_id : ffc_id;
+  */
+
+  // Third try with isolation of aux variable
+  //const auto grain_id = _integrated_index[_qp];
 
   // Recover Euler angles for current grain and assign correct RGB value either
   // from Euler2RGB or from _no_grain_color

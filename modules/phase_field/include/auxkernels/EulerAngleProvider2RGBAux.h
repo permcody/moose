@@ -47,6 +47,9 @@ protected:
   /// Type of value to be outputted
   const unsigned int _output_type;
 
+  /// Coupled integrated_index variable
+  const VariableValue & _integrated_index;
+
   /// Object providing the Euler angles
   const EulerAngleProvider & _euler;
 
