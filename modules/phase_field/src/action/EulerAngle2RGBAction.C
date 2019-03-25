@@ -36,6 +36,8 @@ validParams<EulerAngle2RGBAction>()
                                           "Name of Euler angle provider user object");
   params.addRequiredParam<UserObjectName>("grain_tracker",
                                           "The GrainTracker UserObject to get values from.");
+  params.addCoupledVar("integrated_index",
+                       "The coupled aux variable representing the integrated feature index");
   params.addParam<Point>(
       "no_grain_color",
       Point(0, 0, 0),
@@ -82,6 +84,10 @@ EulerAngle2RGBAction::act()
       params.set<UserObjectName>("grain_tracker") = getParam<UserObjectName>("grain_tracker");
       params.set<ExecFlagEnum>("execute_on") = {EXEC_INITIAL, EXEC_TIMESTEP_END};
       params.set<Point>("no_grain_color") = getParam<Point>("no_grain_color");
+      if (isParamValid("integrated_index"))
+        params.set<std::vector<VariableName>>("integrated_index") =
+            getParam<std::vector<VariableName>>("integrated_index");
+
       if (isParamValid("phase"))
         params.set<unsigned int>("phase") = getParam<unsigned int>("phase");
       _problem->addAuxKernel("EulerAngleProvider2RGBAux", var_name, params);

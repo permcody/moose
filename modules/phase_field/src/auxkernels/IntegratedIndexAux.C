@@ -104,8 +104,8 @@ IntegratedIndexAux::precalculateValue()
 Real
 IntegratedIndexAux::computeValue()
 {
-  //Moose::out << "Elem: " << _current_elem->id() << " , Integrated Index should print first!"
-  //           << std::endl;
+  Moose::out << "Elem: " << _current_elem->id() << " , Integrated Index should print first!"
+             << std::endl;
   return _grain_id;
 }
 /*

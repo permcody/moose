@@ -73,12 +73,11 @@ EulerAngleProvider2RGBAux::precalculateValue()
 {
   // First try (didn't work)
   const auto grain_id =
-    isCoupled("integrated_index")
-        ? _integrated_index[_qp]
-        : _grain_tracker.getEntityValue(isNodal() ? _current_node->id() : _current_elem->id(),
-                                        FeatureFloodCount::FieldType::UNIQUE_REGION,
-                                        0);
-
+      isCoupled("integrated_index")
+          ? _integrated_index[_qp]
+          : _grain_tracker.getEntityValue(isNodal() ? _current_node->id() : _current_elem->id(),
+                                          FeatureFloodCount::FieldType::UNIQUE_REGION,
+                                          0);
 
   /* Second try (still didn't read in integrated index aux var)
   const auto ffc_id =
@@ -90,7 +89,7 @@ EulerAngleProvider2RGBAux::precalculateValue()
   */
 
   // Third try with isolation of aux variable
-  //const auto grain_id = _integrated_index[_qp];
+  // const auto grain_id = _integrated_index[_qp];
 
   // Recover Euler angles for current grain and assign correct RGB value either
   // from Euler2RGB or from _no_grain_color
@@ -141,5 +140,8 @@ EulerAngleProvider2RGBAux::precalculateValue()
 Real
 EulerAngleProvider2RGBAux::computeValue()
 {
+  Moose::out << "Elem: " << _current_elem->id()
+             << " , EulerAngleProvider2RGBAux should print second!" << std::endl;
+
   return _value;
 }
