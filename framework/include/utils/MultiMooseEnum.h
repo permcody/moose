@@ -57,6 +57,8 @@ public:
    */
   MultiMooseEnum(const MultiMooseEnum & other_enum);
 
+  MultiMooseEnum& operator=(const MultiMooseEnum & other_enum) = default;
+
   ///@{
   /**
    * Comparison operators for comparing with character constants, MultiMooseEnums
@@ -197,4 +199,3 @@ protected:
    */
   MultiMooseEnum(const MooseEnumBase & other_enum);
 };
-

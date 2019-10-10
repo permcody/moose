@@ -39,6 +39,8 @@ public:
    */
   MooseEnumBase(const MooseEnumBase & other_enum);
 
+  MooseEnumBase & operator=(const MooseEnumBase & other_enum) = default;
+
   /**
    * This class must have a virtual destructor since it has derived classes.
    */

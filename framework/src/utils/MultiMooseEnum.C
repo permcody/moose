@@ -32,6 +32,13 @@ MultiMooseEnum::MultiMooseEnum(const MultiMooseEnum & other_enum)
 {
 }
 
+//MultiMooseEnum &
+//MultiMooseEnum::operator=(const MultiMooseEnum & other_enum)
+//{
+//  *this = other_enum;
+//  _current = other_enum.current;
+//}
+
 /**
  * Private constuctor for use by libmesh::Parameters
  */

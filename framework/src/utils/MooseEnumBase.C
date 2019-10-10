@@ -36,6 +36,14 @@ MooseEnumBase::MooseEnumBase(const MooseEnumBase & other_enum)
 {
 }
 
+//MooseEnumBase &
+//MooseEnumBase::operator=(const MooseEnumBase & other_enum)
+//{
+//  _items = other_enum._items;
+//  _deprecated_items = other_enum._deprecated_items;
+//  _allow_out_of_range = other_enum._allow_out_of_range;
+//}
+
 /**
  * Private constuctor for use by libmesh::Parameters
  */

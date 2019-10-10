@@ -77,6 +77,8 @@ public:
   /// Default constructor; fills to zero
   RankThreeTensorTempl();
 
+  RankThreeTensorTempl(const RankThreeTensorTempl<T> & a) = default;
+
   /**
    * Construct from other class template instantiation
    */
@@ -275,4 +277,3 @@ RankTwoTensorTempl<T> operator*(const VectorValue<T> & p, const RankThreeTensorT
 
   return result;
 }
-

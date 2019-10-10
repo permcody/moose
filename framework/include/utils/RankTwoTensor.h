@@ -124,6 +124,8 @@ public:
   /// Initialization list replacement constructors, 9 arguments
   RankTwoTensorTempl(T S11, T S21, T S31, T S12, T S22, T S32, T S13, T S23, T S33);
 
+  RankTwoTensorTempl(const RankTwoTensorTempl<T> & a) = default;
+
   /// Copy constructor from TensorValue<T>
   RankTwoTensorTempl(const TensorValue<T> & a) : TensorValue<T>(a) {}
 

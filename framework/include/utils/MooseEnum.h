@@ -57,6 +57,8 @@ public:
    */
   MooseEnum(const MooseEnum & other_enum);
 
+  MooseEnum& operator=(const MooseEnum & other_enum) = default;
+
   virtual ~MooseEnum() = default;
 
   /**
@@ -144,4 +146,3 @@ MooseEnum::getEnum() const
 #endif
   return static_cast<T>(_current.id());
 }
-

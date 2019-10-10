@@ -122,6 +122,8 @@ public:
   /// Fill from vector
   RankFourTensorTempl(const std::vector<T> &, FillMethod);
 
+  RankFourTensorTempl(const RankFourTensorTempl<T> & a) = default;
+
   /**
    * Copy constructor
    */
@@ -462,4 +464,3 @@ RankFourTensorTempl<T>::operator/(const T2 & b) const ->
 
 typedef RankFourTensorTempl<Real> RankFourTensor;
 typedef RankFourTensorTempl<DualReal> DualRankFourTensor;
-
