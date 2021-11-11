@@ -17,6 +17,7 @@ Some of the capability at your fingertips:
 * Dimension agnostic, parallel geometric search (for contact related applications)
 * Flexible, plugable graphical user interface
 * ~30 plugable interfaces allow specialization of every part of the solve
+* Cool new features and more stuff
 
 More Information
 ================
