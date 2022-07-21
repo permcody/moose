@@ -226,8 +226,7 @@ FeatureFloodCount::FeatureFloodCount(const InputParameters & parameters)
                                : _real_zero),
     _halo_ids(_maps_size),
     _is_elemental(getParam<MooseEnum>("flood_entity_type") == "ELEMENTAL"),
-    _is_primary(processor_id() == 0),
-    _distribute_merge_work(_app.n_processors() >= _maps_size && _maps_size > 1)
+    _is_primary(processor_id() == 0)
 {
   if (_var_index_mode)
     _var_index_maps.resize(_maps_size);
@@ -397,6 +396,12 @@ FeatureFloodCount::execute()
   }
 }
 
+processor_id_type
+FeatureFloodCount::numberOfDistributedMergeHelpers() const
+{
+  return _app.n_processors() >= _maps_size ? _maps_size : 1;
+}
+
 void
 FeatureFloodCount::communicateAndMerge()
 {
@@ -428,20 +433,22 @@ FeatureFloodCount::communicateAndMerge()
    * After each of those processors has merged that information, it'll be sent to the primary
    * processor where final consolidation will occur.
    */
-  if (_distribute_merge_work)
+  const auto n_merging_procs = numberOfDistributedMergeHelpers();
+
+  if (n_merging_procs > 1)
   {
     auto rank = processor_id();
-    bool is_merging_processor = rank < _n_vars;
+    bool is_merging_processor = rank < n_merging_procs;
 
     if (is_merging_processor)
       recv_buffers.reserve(_app.n_processors());
 
-    for (MooseIndex(_n_vars) i = 0; i < _n_vars; ++i)
+    for (MooseIndex(n_merging_procs) i = 0; i < n_merging_procs; ++i)
     {
       serialize(send_buffers[0], i);
 
       /**
-       * Send the data from all processors to the first _n_vars processors to create a complete
+       * Send the data from all processors to the first 'n_merging_procs' processors to create a complete
        * global feature maps for each variable.
        */
       _communicator.gather_packed_range(i,
@@ -465,8 +472,7 @@ FeatureFloodCount::communicateAndMerge()
     // Setup a new communicator for doing merging communication operations
     Parallel::Communicator merge_comm;
 
-    // TODO: Update to MPI_UNDEFINED when libMesh bug is fixed.
-    _communicator.split(is_merging_processor ? 0 : 1, rank, merge_comm);
+    _communicator.split(is_merging_processor ? 0 : MPI_UNDEFINED, rank, merge_comm);
 
     if (is_merging_processor)
     {
@@ -1163,13 +1169,14 @@ FeatureFloodCount::mergeSets()
 void
 FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data)
 {
-  TIME_SECTION("consilidateMergedFeatures", 3, "Consolidating Merged Features");
+  TIME_SECTION("consolidateMergedFeatures", 3, "Consolidating Merged Features");
 
   /**
    * Now that the merges are complete we need to adjust the centroid, and halos.
    * Additionally, To make several of the sorting and tracking algorithms more straightforward,
    * we will move the features into a flat vector. Finally we can count the final number of
    * features and find the max local index seen on any processor
+   *
    * Note: This is all occurring on rank 0 only!
    */
   mooseAssert(_is_primary,
@@ -2245,3 +2252,4 @@ areElemListsMergeable(const std::list<dof_id_type> & elem_list1,
 // Constants
 const std::size_t FeatureFloodCount::invalid_size_t = std::numeric_limits<std::size_t>::max();
 const unsigned int FeatureFloodCount::invalid_id = std::numeric_limits<unsigned int>::max();
+const processor_id_type FeatureFloodCount::invalid_proc_id = std::numeric_limits<processor_id_type>::max();
