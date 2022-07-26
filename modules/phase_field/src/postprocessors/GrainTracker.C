@@ -308,12 +308,19 @@ GrainTracker::prepopulateState(const FeatureFloodCount & ffc_object)
     _feature_count = _feature_sets.size();
   }
   else
-  {
-    const auto & features = ffc_object.getFeatures();
-    _partial_feature_sets[0].clear();
-    for (auto & feature : features)
-      _partial_feature_sets[0].emplace_back(feature.duplicate());
-  }
+ {
+   const auto & features = ffc_object.getFeatures();
+   _partial_feature_sets[0].clear();
+   for (auto & feature : features)
+     _partial_feature_sets[0].emplace_back(feature.duplicate());
+ }
+//  else
+//  {
+//    const auto & feature_sets = ffc_object.getPartialFeatures();
+//    _partial_feature_sets[0].clear();
+//    for (auto & feature : feature_sets[0])
+//      _partial_feature_sets[0].emplace_back(feature.duplicate());
+//  }
 
   // Make sure that feature count is communicated to all ranks
   _communicator.broadcast(_feature_count);

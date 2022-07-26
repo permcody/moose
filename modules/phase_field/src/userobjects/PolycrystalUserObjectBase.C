@@ -246,6 +246,9 @@ PolycrystalUserObjectBase::finalize()
 
   FeatureFloodCount::finalize();
 
+  for (auto & feature : _feature_sets)
+    std::cout << feature << std::endl;
+
   if (!_colors_assigned)
   {
     // Resize the color assignment vector here. All ranks need a copy of this
@@ -306,6 +309,17 @@ PolycrystalUserObjectBase::mergeSets()
 }
 
 void
+PolycrystalUserObjectBase::restoreOriginalDataStructures(std::vector<std::list<FeatureData>> & orig)
+{
+  // Move all the data back into the first list
+  auto & master_list = orig[0];
+  for (MooseIndex(_maps_size) map_num = 1; map_num < orig.size(); ++map_num)
+    master_list.splice(master_list.end(), orig[map_num]);
+
+  orig.resize(1);
+}
+
+void
 PolycrystalUserObjectBase::consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data)
 {
   /**
@@ -318,11 +332,9 @@ PolycrystalUserObjectBase::consolidateMergedFeatures(std::vector<std::list<Featu
   mooseAssert(_is_primary,
               "cosolidateMergedFeatures() may only be called on the primary processor");
 
-  // Move all the data back into the first list
-  auto & master_list = _partial_feature_sets[0];
-  for (MooseIndex(_maps_size) map_num = 1; map_num < _partial_feature_sets.size(); ++map_num)
-    master_list.splice(master_list.end(), _partial_feature_sets[map_num]);
-  _partial_feature_sets.resize(1);
+
+  restoreOriginalDataStructures(_partial_feature_sets);
+
 
   // Now consolidate the data from the root processor with the data merged from other ranks
   FeatureFloodCount::consolidateMergedFeatures(saved_data);

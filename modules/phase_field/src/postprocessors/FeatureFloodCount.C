@@ -477,7 +477,7 @@ FeatureFloodCount::communicateAndMerge()
     if (is_merging_processor)
     {
       /**
-       * The FeatureFloodCount and derived algorithms rely on having the data structures intact on
+       * The FeatureFloodCount and derived objects rely on having the original data structures intact on
        * all non-zero ranks. This is because local-only information (local entities) is never
        * communicated and thus must remain intact. However, the distributed merging will destroy
        * that information. The easiest thing to do is to swap out the data structure while
@@ -522,8 +522,11 @@ FeatureFloodCount::communicateAndMerge()
         consolidateMergedFeatures(&tmp_data);
       }
       else
+      {
         // Restore our original data on non-zero ranks
         tmp_data.swap(_partial_feature_sets);
+        restoreOriginalDataStructures(_partial_feature_sets);
+      }
     }
   }
 

@@ -338,6 +338,13 @@ public:
   /// Return a constant reference to the vector of all discovered features
   const std::vector<FeatureData> & getFeatures() const { return _feature_sets; }
 
+  /**
+   * Return a constant reference to the vector of all partial discovered features.
+   * This method should generally only be called by the prepopulate method. The data
+   * here is not globally consistent and meant to assist in bootstrapping a new object.
+   */
+  const std::vector<std::list<FeatureData>> & getPartialFeatures() const { return _partial_feature_sets; }
+
 protected:
   /**
    * Returns a Boolean indicating whether the entity is on one of the desired boundaries.
@@ -493,6 +500,8 @@ protected:
    * structures containing FeatureData objects.
    */
   void communicateAndMerge();
+
+  virtual void restoreOriginalDataStructures(std::vector<std::list<FeatureData>> &) {}
 
   /**
    * Sort and assign ids to features based on their position in the container after sorting.
