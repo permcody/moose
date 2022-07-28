@@ -246,9 +246,6 @@ PolycrystalUserObjectBase::finalize()
 
   FeatureFloodCount::finalize();
 
-  for (auto & feature : _feature_sets)
-    std::cout << feature << std::endl;
-
   if (!_colors_assigned)
   {
     // Resize the color assignment vector here. All ranks need a copy of this
@@ -318,28 +315,6 @@ PolycrystalUserObjectBase::restoreOriginalDataStructures(std::vector<std::list<F
 
   orig.resize(1);
 }
-
-void
-PolycrystalUserObjectBase::consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data)
-{
-  /**
-   * Now that the merges have been completed, our data may be spread out out in the
-   * _partial feature_sets data structure. We'll need to move it all back into map_index zero
-   * and get a final count
-   *
-   * Note: This is all occurring on rank 0 only!
-   */
-  mooseAssert(_is_primary,
-              "cosolidateMergedFeatures() may only be called on the primary processor");
-
-
-  restoreOriginalDataStructures(_partial_feature_sets);
-
-
-  // Now consolidate the data from the root processor with the data merged from other ranks
-  FeatureFloodCount::consolidateMergedFeatures(saved_data);
-}
-
 
 bool
 PolycrystalUserObjectBase::isNewFeatureOrConnectedRegion(const DofObject * dof_object,

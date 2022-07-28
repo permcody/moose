@@ -100,7 +100,6 @@ protected:
                                              unsigned int & new_id) override;
   virtual void prepareDataForTransfer() override;
   virtual void mergeSets() override;
-  virtual void consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data = nullptr) override;
   virtual processor_id_type numberOfDistributedMergeHelpers() const override;
   virtual void restoreOriginalDataStructures(std::vector<std::list<FeatureData>> & orig) override;
 

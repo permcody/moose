@@ -522,11 +522,8 @@ FeatureFloodCount::communicateAndMerge()
         consolidateMergedFeatures(&tmp_data);
       }
       else
-      {
         // Restore our original data on non-zero ranks
         tmp_data.swap(_partial_feature_sets);
-        restoreOriginalDataStructures(_partial_feature_sets);
-      }
     }
   }
 
@@ -562,6 +559,9 @@ FeatureFloodCount::communicateAndMerge()
       consolidateMergedFeatures();
     }
   }
+
+  if (!_is_primary)
+    restoreOriginalDataStructures(_partial_feature_sets);
 
   // Make sure that feature count is communicated to all ranks
   _communicator.broadcast(_feature_count);
@@ -1184,13 +1184,13 @@ FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>>
    */
   mooseAssert(_is_primary,
               "cosolidateMergedFeatures() may only be called on the primary processor");
+  mooseAssert(saved_data == nullptr || saved_data->size() == _partial_feature_sets.size(), "Data structure size mismatch");
 
   // Offset where the current set of features with the same variable id starts in the flat vector
   unsigned int feature_offset = 0;
   // Set the member feature count to zero and start counting the actual features
   _feature_count = 0;
-
-  for (MooseIndex(_maps_size) map_num = 0; map_num < _maps_size; ++map_num)
+  for (MooseIndex(_maps_size) map_num = 0; map_num < _partial_feature_sets.size(); ++map_num)
   {
     for (auto & feature : _partial_feature_sets[map_num])
     {
@@ -1230,7 +1230,15 @@ FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>>
 
     // Clean up the "moved" objects
     _partial_feature_sets[map_num].clear();
+    if (saved_data)
+      (*saved_data)[map_num].clear();
   }
+
+  // We may have resided our data structure for the communicateAndMerge step. We'll restore the
+  // original size here just in case we need to loop over the assumed size (i.e. _maps_size) elsewhere
+  // in this or derived objects.
+  if (_partial_feature_sets.size() != _maps_size)
+    _partial_feature_sets.resize(_maps_size);
 
   /**
    * IMPORTANT: FeatureFloodCount::_feature_count is set on rank 0 at this point but
