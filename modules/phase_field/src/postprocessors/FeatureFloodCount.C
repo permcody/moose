@@ -448,8 +448,8 @@ FeatureFloodCount::communicateAndMerge()
       serialize(send_buffers[0], i);
 
       /**
-       * Send the data from all processors to the first 'n_merging_procs' processors to create a complete
-       * global feature maps for each variable.
+       * Send the data from all processors to the first 'n_merging_procs' processors to create a
+       * complete global feature maps for each variable.
        */
       _communicator.gather_packed_range(i,
                                         (void *)(nullptr),
@@ -477,10 +477,10 @@ FeatureFloodCount::communicateAndMerge()
     if (is_merging_processor)
     {
       /**
-       * The FeatureFloodCount and derived objects rely on having the original data structures intact on
-       * all non-zero ranks. This is because local-only information (local entities) is never
-       * communicated and thus must remain intact. However, the distributed merging will destroy
-       * that information. The easiest thing to do is to swap out the data structure while
+       * The FeatureFloodCount and derived objects rely on having the original data structures
+       * intact on all non-zero ranks. This is because local-only information (local entities) is
+       * never communicated and thus must remain intact. However, the distributed merging will
+       * destroy that information. The easiest thing to do is to swap out the data structure while
        * we perform the distributed merge work.
        */
       std::vector<std::list<FeatureData>> tmp_data(_partial_feature_sets.size());
@@ -1184,7 +1184,8 @@ FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>>
    */
   mooseAssert(_is_primary,
               "cosolidateMergedFeatures() may only be called on the primary processor");
-  mooseAssert(saved_data == nullptr || saved_data->size() == _partial_feature_sets.size(), "Data structure size mismatch");
+  mooseAssert(saved_data == nullptr || saved_data->size() == _partial_feature_sets.size(),
+              "Data structure size mismatch");
 
   // Offset where the current set of features with the same variable id starts in the flat vector
   unsigned int feature_offset = 0;
@@ -1235,8 +1236,8 @@ FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>>
   }
 
   // We may have resided our data structure for the communicateAndMerge step. We'll restore the
-  // original size here just in case we need to loop over the assumed size (i.e. _maps_size) elsewhere
-  // in this or derived objects.
+  // original size here just in case we need to loop over the assumed size (i.e. _maps_size)
+  // elsewhere in this or derived objects.
   if (_partial_feature_sets.size() != _maps_size)
     _partial_feature_sets.resize(_maps_size);
 
@@ -2263,4 +2264,5 @@ areElemListsMergeable(const std::list<dof_id_type> & elem_list1,
 // Constants
 const std::size_t FeatureFloodCount::invalid_size_t = std::numeric_limits<std::size_t>::max();
 const unsigned int FeatureFloodCount::invalid_id = std::numeric_limits<unsigned int>::max();
-const processor_id_type FeatureFloodCount::invalid_proc_id = std::numeric_limits<processor_id_type>::max();
+const processor_id_type FeatureFloodCount::invalid_proc_id =
+    std::numeric_limits<processor_id_type>::max();

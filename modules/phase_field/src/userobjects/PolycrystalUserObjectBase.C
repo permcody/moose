@@ -159,7 +159,8 @@ PolycrystalUserObjectBase::execute()
 processor_id_type
 PolycrystalUserObjectBase::numberOfDistributedMergeHelpers() const
 {
-  mooseAssert(_num_chunks != FeatureFloodCount::invalid_proc_id, "prepareDataForTransfer() hasn't been called yet");
+  mooseAssert(_num_chunks != FeatureFloodCount::invalid_proc_id,
+              "prepareDataForTransfer() hasn't been called yet");
 
   return _num_chunks;
 }
@@ -217,7 +218,8 @@ PolycrystalUserObjectBase::prepareDataForTransfer()
   _num_chunks = std::min(_app.n_processors(), total_items);
   _partial_feature_sets.resize(_num_chunks);
 
-  for (auto it = _partial_feature_sets[0].begin(); it != _partial_feature_sets[0].end(); /* No increment on it*/)
+  for (auto it = _partial_feature_sets[0].begin(); it != _partial_feature_sets[0].end();
+       /* No increment on it*/)
   {
     auto chunk = MooseUtils::linearPartitionChunk(total_items, _num_chunks, it->_id);
 
@@ -280,9 +282,9 @@ PolycrystalUserObjectBase::mergeSets()
   for (MooseIndex(_maps_size) map_num = 0; map_num < _partial_feature_sets.size(); ++map_num)
   {
     /**
-     * With initial conditions we know the grain IDs of every grain (even partial grains). We can use
-     * this information to put all mergeable features adjacent to one and other in the list so that
-     * merging is simply O(n).
+     * With initial conditions we know the grain IDs of every grain (even partial grains). We can
+     * use this information to put all mergeable features adjacent to one and other in the list so
+     * that merging is simply O(n).
      */
     _partial_feature_sets[map_num].sort();
 

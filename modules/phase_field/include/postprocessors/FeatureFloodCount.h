@@ -471,7 +471,8 @@ protected:
    * This method consolidates all of the merged information from _partial_feature_sets into
    * the _feature_sets vectors.
    */
-  virtual void consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data = nullptr);
+  virtual void
+  consolidateMergedFeatures(std::vector<std::list<FeatureData>> * saved_data = nullptr);
 
   /**
    * Method for determining whether two features are mergeable. This routine exists because
