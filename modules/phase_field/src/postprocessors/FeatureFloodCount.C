@@ -1853,78 +1853,49 @@ FeatureFloodCount::FeatureData::updateBBoxExtremes(MeshBase & mesh)
   for (auto & ghost_id : _ghosted_ids)
     updateBBoxExtremesHelper(_bboxes[0], mesh.elem_ref(ghost_id));
 
+  FeatureData::container_type all_primary_region_ids;
+  FeatureFloodCount::reserve(all_primary_region_ids, _local_ids.size() + _halo_ids.size());
+  std::set_union(_local_ids.begin(),
+                 _local_ids.end(),
+                 _halo_ids.begin(),
+                 _halo_ids.end(),
+                 std::insert_iterator<FeatureData::container_type>(all_primary_region_ids,
+                                                                   all_primary_region_ids.begin()));
+
   // Remove all of the IDs that are in the primary region
   std::list<dof_id_type> disjoint_elem_id_list;
   std::set_difference(_disjoint_halo_ids.begin(),
                       _disjoint_halo_ids.end(),
-                      _halo_ids.begin(),
-                      _halo_ids.end(),
+                      all_primary_region_ids.begin(),
+                      all_primary_region_ids.end(),
                       std::insert_iterator<std::list<dof_id_type>>(disjoint_elem_id_list,
                                                                    disjoint_elem_id_list.begin()));
 
-  if (!disjoint_elem_id_list.empty())
+  /**
+   * Now we need to find how many distinct topologically disconnected sets of elements we have.
+   * We've already removed elements that are part of the primary region, now we need to iterate
+   * over the remaining "possible" disjoint elements and partition them into independent
+   * bboxes regions.
+   */
+  constexpr auto TOLERANCE = libMesh::TOLERANCE * libMesh::TOLERANCE;
+  for (auto elem_id : disjoint_elem_id_list)
   {
-    /**
-     * Now we need to find how many distinct topologically disconnected sets of elements we have.
-     * We've already removed elements that are part of the primary halo, we'll start by assuming
-     * that element left is part of the same disjoint set. For each element, we'll see if it is a
-     * neighbor of any other element in the current set. If it's not, then it must be part of yet
-     * another set. The process repeats until every element is processed and put in the right
-     * bucket.
-     */
-    std::list<std::list<dof_id_type>> disjoint_regions;
-    for (auto elem_id : _disjoint_halo_ids)
-    {
-      disjoint_regions.emplace_back(std::list<dof_id_type>({elem_id}));
-    }
+    BoundingBox elem_bbox;
+    updateBBoxExtremesHelper(elem_bbox, *mesh.elem_ptr(elem_id));
 
-    for (auto it1 = disjoint_regions.begin(); it1 != disjoint_regions.end(); /* No increment */)
+    bool found_match = false;
+    for (auto & bbox : _bboxes)
     {
-      bool merge_occured = false;
-      for (auto it2 = disjoint_regions.begin(); it2 != disjoint_regions.end(); ++it2)
+      if (bbox.intersects(elem_bbox, TOLERANCE))
       {
-        if (it1 != it2 && areElemListsMergeable(*it1, *it2, mesh))
-        {
-          it2->splice(it2->begin(), *it1);
-
-          disjoint_regions.emplace_back(std::move(*it2));
-          disjoint_regions.erase(it2);
-          it1 = disjoint_regions.erase(it1);
-
-          merge_occured = true;
-
-          break;
-        }
+        updateBBoxExtremes(bbox, elem_bbox);
+        found_match = true;
+        break;
       }
-
-      if (!merge_occured)
-        ++it1;
     }
 
-    // Finally create new bounding boxes for each disjoint region
-    auto num_regions = disjoint_regions.size();
-    // We have num_regions *new* bounding boxes plus the existing bounding box
-    _bboxes.resize(num_regions + 1);
-
-    decltype(num_regions) region = 1;
-    for (const auto & list_ref : disjoint_regions)
-    {
-      for (const auto elem_id : list_ref)
-        updateBBoxExtremesHelper(_bboxes[region], *mesh.elem_ptr(elem_id));
-
-      FeatureData::container_type set_union;
-      FeatureFloodCount::reserve(set_union, _halo_ids.size() + _disjoint_halo_ids.size());
-      std::set_union(
-          _halo_ids.begin(),
-          _halo_ids.end(),
-          _disjoint_halo_ids.begin(),
-          _disjoint_halo_ids.end(),
-          std::insert_iterator<FeatureData::container_type>(set_union, set_union.begin()));
-      _halo_ids.swap(set_union);
-
-      _disjoint_halo_ids.clear();
-      ++region;
-    }
+    if (!found_match)
+      _bboxes.push_back(elem_bbox);
   }
 }
 
