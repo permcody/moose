@@ -1235,11 +1235,16 @@ FeatureFloodCount::consolidateMergedFeatures(std::vector<std::list<FeatureData>>
       (*saved_data)[map_num].clear();
   }
 
-  // We may have resided our data structure for the communicateAndMerge step. We'll restore the
+  // We may have resided our data structures for the communicateAndMerge step. We'll restore the
   // original size here just in case we need to loop over the assumed size (i.e. _maps_size)
   // elsewhere in this or derived objects.
   if (_partial_feature_sets.size() != _maps_size)
+  {
     _partial_feature_sets.resize(_maps_size);
+
+    _feature_counts_per_map[0] = _feature_count;
+    _feature_counts_per_map.resize(_maps_size);
+  }
 
   /**
    * IMPORTANT: FeatureFloodCount::_feature_count is set on rank 0 at this point but

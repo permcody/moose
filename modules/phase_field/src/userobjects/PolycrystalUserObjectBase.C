@@ -216,7 +216,16 @@ PolycrystalUserObjectBase::prepareDataForTransfer()
   auto total_items = largest_id + 1;
 
   _num_chunks = std::min(_app.n_processors(), total_items);
+
+  /**
+   * Here we are resizing our datastructures that we normally size upon construction. This is too
+   * support the parallel merge capability that's in the FeatureFloodCount class. We'll need to undo
+   * this latter, there are a few assumptions built on the sizes of these data structures.
+   *
+   * See FeatureFloodCount::consolidateMergedFeatures for the "un-sizing" of these structures.
+   */
   _partial_feature_sets.resize(_num_chunks);
+  _feature_counts_per_map.resize(_num_chunks);
 
   for (auto it = _partial_feature_sets[0].begin(); it != _partial_feature_sets[0].end();
        /* No increment on it*/)
@@ -313,7 +322,10 @@ PolycrystalUserObjectBase::restoreOriginalDataStructures(std::vector<std::list<F
   // Move all the data back into the first list
   auto & master_list = orig[0];
   for (MooseIndex(_maps_size) map_num = 1; map_num < orig.size(); ++map_num)
+  {
     master_list.splice(master_list.end(), orig[map_num]);
+    orig[map_num].clear();
+  }
 
   orig.resize(1);
 }
