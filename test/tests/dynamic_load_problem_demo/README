@@ -1,0 +1,26 @@
+This PR will enable to see a typical error that you get when running
+two mature applications with one as a multiapp of the other. 
+
+Test setup:
+1. Clone both Bison and Pronghorn at the same level as your MOOSE directory.
+2. Compile both against a common MOOSE/libMesh instance.
+3. Run the Multiapp test in this diretory (CWD == this directory) with the 
+   pronghorn executable you compiled in #2.
+
+(lldb) bt
+* thread #1, queue = 'com.apple.main-thread', stop reason = EXC_BAD_ACCESS (code=1, address=0x115eca94c)
+  * frame #0: 0x0000000115eca94c
+    frame #1: 0x0000000103e6637c libmoose-devel.0.dylib`ActionFactory::getValidParams(this=0x00000001138f8390, name="LoadSurrogateDataAction") at ActionFactory.C:93:28 [opt]
+    frame #2: 0x0000000103e660f8 libmoose-devel.0.dylib`ActionWarehouse::buildBuildableActions(this=0x00000001138f8418, task="load_surrogate_data") at ActionWarehouse.C:218:48 [opt]
+    frame #3: 0x0000000103e921f8 libmoose-devel.0.dylib`ActionWarehouse::build(this=0x00000001138f8418) at ActionWarehouse.C:56:5 [opt]
+    frame #4: 0x0000000104384598 libmoose-devel.0.dylib`MooseApp::setupOptions(this=0x00000001138f8018) at MooseApp.C:974:23 [opt]
+    frame #5: 0x0000000103d1d004 libmoose-devel.0.dylib`MultiApp::createApp(this=0x00000001138b2a18, i=<unavailable>, start_time=<unavailable>) at MultiApp.C:1019:8 [opt]
+    frame #6: 0x0000000103d1ad1c libmoose-devel.0.dylib`MultiApp::createApps(this=0x00000001138b2a18) at MultiApp.C:351:5 [opt]
+    frame #7: 0x0000000103a64760 libmoose-devel.0.dylib`FEProblemBase::addMultiApp(this=0x00000001138a4e18, multi_app_name="TransientMultiApp", name="sub_app", parameters=0x0000000110d83d88) at FEProblemBase.C:4499:14 [opt]
+    frame #8: 0x0000000103e68048 libmoose-devel.0.dylib`Action::timedAct(this=0x0000000110d83c48) at Action.C:97:3 [opt]
+    frame #9: 0x0000000103e67aa4 libmoose-devel.0.dylib`ActionWarehouse::executeActionsWithAction(this=0x0000000113898e18, task="add_multi_app") at ActionWarehouse.C:386:19 [opt]
+    frame #10: 0x0000000103e93934 libmoose-devel.0.dylib`ActionWarehouse::executeAllActions(this=0x0000000113898e18) at ActionWarehouse.C:346:5 [opt]
+    frame #11: 0x0000000104385d04 libmoose-devel.0.dylib`MooseApp::runInputFile(this=0x0000000113898a18) at MooseApp.C:1042:21 [opt]
+    frame #12: 0x0000000104380b4c libmoose-devel.0.dylib`MooseApp::run(this=0x0000000113898a18) at MooseApp.C:1392:5 [opt]
+    frame #13: 0x0000000100013b68 pronghorn-devel`main(argc=3, argv=0x000000016fdfcc38) at main.C:38:8 [opt]
+    frame #14: 0x00000001b020be50 dyld`start + 2544
