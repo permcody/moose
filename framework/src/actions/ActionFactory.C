@@ -90,11 +90,45 @@ ActionFactory::getValidParams(const std::string & name)
   if (iter == _name_to_build_info.end())
     mooseError(std::string("A '") + name + "' is not a registered Action\n\n");
 
-  InputParameters params = (iter->second._params_pointer)();
-  params.addPrivateParam("_moose_app", &_app);
-  params.addPrivateParam<ActionWarehouse *>("awh", &_app.actionWarehouse());
+  auto iters = _name_to_build_info.equal_range(name);
+  auto start_iter = iters.first;
+  auto end_iter = iters.second;
 
-  return params;
+  while (start_iter != end_iter)
+  {
+    auto param_ptr = start_iter->second._params_pointer;
+    std::cout << "Param_ptr: " << &param_ptr << std::endl;
+
+    try
+    {
+      InputParameters params = (param_ptr)();
+
+      params.addPrivateParam("_moose_app", &_app);
+      params.addPrivateParam<ActionWarehouse *>("awh", &_app.actionWarehouse());
+
+      return params;
+    }
+    catch (...)
+    {
+    }
+  }
+
+  //  auto count = std::distance(iters.first, iters.second);
+  //  if (count > 1)
+  //  {
+  //    std::cout << "More than one Action Params\n";
+  //    std::cout << iters.first->second._params_pointer;
+  //  }
+
+  //  auto param_ptr = iter->second._params_pointer;
+  //  InputParameters params = (param_ptr)();
+
+  //  InputParameters params = (iter->second._params_pointer)();
+  //  params.addPrivateParam("_moose_app", &_app);
+  //  params.addPrivateParam<ActionWarehouse *>("awh", &_app.actionWarehouse());
+  //
+  //  return params;
+  mooseError("Oh shit!");
 }
 
 std::string

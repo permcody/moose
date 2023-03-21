@@ -12,9 +12,8 @@
 
 [Kernels]
   [./diff]
-    type = CoefDiffusion
+    type = Diffusion
     variable = u
-    coef = 0.1
   [../]
   [./time]
     type = TimeDerivative
@@ -48,4 +47,5 @@
 
 [Outputs]
   exodus = true
+  perf_graph_live = false
 []

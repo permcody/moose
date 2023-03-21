@@ -12,9 +12,9 @@
 
 [Kernels]
   [./diff]
-    type = Diffusion
+    type = CoefDiffusion
     variable = u
-#    coef = 0.1
+    coef = 0.1
   [../]
   [./time]
     type = TimeDerivative
@@ -48,7 +48,6 @@
 
 [Outputs]
   exodus = true
-  perf_graph_live = false
 []
 
 [MultiApps]
@@ -58,12 +57,8 @@
     input_files = 'simple_transient_diffusion.i'
 
     # Here we'll attempt to load a different module that's not compiled into this module
-#    app_type = BisonApp
-#    library_path = '../../../../bison/lib'
-#    app_type = PronghornApp
-#    library_path = '../../../../pronghorn/lib'
-    app_type = WithSTApp
-    library_path = '../../../../with_st/lib'
+    app_type = BisonApp
+    library_path = '../../../../bison/lib'
   []
 []
 
