@@ -389,6 +389,9 @@ MooseApp::MooseApp(InputParameters parameters)
     _execute_flags(ExecFlagRegistry::getExecFlagRegistry().getFlags()),
     _automatic_automatic_scaling(getParam<bool>("automatic_automatic_scaling"))
 {
+
+  std::cout << "Default Flags: " << _execute_flags.getDocString() << std::endl;
+
 #ifdef HAVE_GPERFTOOLS
   if (isUltimateMaster())
   {

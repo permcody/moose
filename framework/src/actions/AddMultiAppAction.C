@@ -26,4 +26,6 @@ void
 AddMultiAppAction::act()
 {
   _problem->addMultiApp(_type, _name, _moose_object_pars);
+
+  std::cout << "After Multiapp Add: " << _app.getExecuteOnEnum().getDocString() << std::endl;
 }
