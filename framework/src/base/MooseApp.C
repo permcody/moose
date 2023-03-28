@@ -1934,7 +1934,7 @@ MooseApp::loadLibraryAndDependencies(const std::string & library_filename,
 #endif
 
 #ifdef LIBMESH_HAVE_DLOPEN
-      dlclose(handle);
+//      dlclose(handle);
 #endif
     }
     else // registration_method is valid!
