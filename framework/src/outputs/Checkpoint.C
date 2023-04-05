@@ -56,6 +56,8 @@ Checkpoint::Checkpoint(const InputParameters & parameters)
     _num_files(getParam<unsigned int>("num_files")),
     _suffix(getParam<std::string>("suffix"))
 {
+  if (_is_autosave == SYSTEM_AUTOSAVE || (_is_autosave == MODIFIED_EXISTING))
+    start_time = std::chrono::steady_clock::now();
 }
 
 std::string
@@ -114,6 +116,13 @@ Checkpoint::shouldOutput()
   // as the autosave and that checkpoint isn't on its interval, then output.
   if (_is_autosave == SYSTEM_AUTOSAVE || (_is_autosave == MODIFIED_EXISTING && !should_output))
   {
+    auto curr_time = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(curr_time - start_time);
+    if (elapsed >= std::chrono::minutes(10))
+    {
+      start_time = std::chrono::steady_clock::now();
+      return true;
+    }
     // If this is a pure system-created autosave through AutoCheckpointAction,
     // then sync across processes and only output one time per signal received.
     comm().max(Moose::interrupt_signal_number);
