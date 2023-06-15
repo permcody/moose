@@ -3,7 +3,7 @@
   dim = 2
   nx = 10
   ny = 10
-  uniform_refine = 2
+  uniform_refine = 3
 []
 
 [Variables]
@@ -49,7 +49,7 @@
 
 [Outputs]
   [cp]
-    type = TestAutosaveTimedCheckpoint
+    type = Checkpoint
     autosave_time_interval = 1
   []
 []

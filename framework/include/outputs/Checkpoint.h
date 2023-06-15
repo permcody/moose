@@ -12,7 +12,6 @@
 // MOOSE includes
 #include "FileOutput.h"
 
-#include <chrono>
 #include <deque>
 #include <filesystem>
 
@@ -110,8 +109,8 @@ private:
   /// Vector of checkpoint filename structures
   std::deque<CheckpointFileNames> _file_names;
 
-  /// Starting time compared against to see if we should automatically print out a checkpoint
-  std::chrono::time_point<std::chrono::steady_clock> start_time;
+  /// Wall time of last checkpoint
+  std::chrono::time_point<std::chrono::steady_clock> _time_of_last_checkpoint;
 
   static constexpr auto ASCII_MESH_SUFFIX = "_mesh.cpa";
   static constexpr auto BINARY_MESH_SUFFIX = "_mesh.cpr";

@@ -21,6 +21,8 @@
 #include "PerfGraphInterface.h"
 #include "FunctionInterface.h"
 
+#include <chrono>
+
 class MooseMesh;
 class Times;
 
@@ -151,7 +153,7 @@ protected:
    * A method called just prior to the solve, this is used by PetscOutput to perform the necessary
    * setup actions for each timestep
    */
-  virtual void solveSetup();
+  virtual void solveSetup() {}
 
   /**
    * Handles logic for determining if a step should be output
@@ -213,7 +215,7 @@ protected:
   unsigned int _num;
 
   /// The output time step interval
-  const unsigned int _interval;
+  unsigned int _interval;
 
   /// Minimum simulation time between outputs
   const Real _minimum_time_interval;
@@ -254,8 +256,11 @@ protected:
   // the output settings.
   OutputOnWarehouse _advanced_execute_on;
 
-  /// last simulation time an output has occured
+  /// last simulation time an output has occurred
   Real & _last_output_time;
+
+  /// last wall time an output has occurred
+  std::chrono::time_point<std::chrono::steady_clock> _last_output_wall_time;
 
   friend class OutputWarehouse;
 };

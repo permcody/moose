@@ -44,6 +44,9 @@ Output::validParams()
       "interval", 1, "The interval at which time steps are output to the solution file");
   params.addParam<Real>(
       "minimum_time_interval", 0.0, "The minimum simulation time between output steps");
+  params.addParam<unsigned int>("minimum_wall_time_interval",
+                                std::numeric_limits<unsigned int>::max(),
+                                "The minimum wall time in seconds between output steps");
   params.addParam<std::vector<Real>>("sync_times",
                                      "Times at which the output and solution is forced to occur");
   params.addParam<TimesName>(
@@ -121,6 +124,7 @@ Output::Output(const InputParameters & parameters)
     _num(0),
     _interval(getParam<unsigned int>("interval")),
     _minimum_time_interval(getParam<Real>("minimum_time_interval")),
+    _wall_time_interval(getParam<unsigned int>("_wall_time_interval")),
     _sync_times(std::set<Real>(getParam<std::vector<Real>>("sync_times").begin(),
                                getParam<std::vector<Real>>("sync_times").end())),
     _sync_times_object(isParamValid("sync_times_object")
@@ -200,8 +204,9 @@ Output::Output(const InputParameters & parameters)
 }
 
 void
-Output::solveSetup()
+Output::initialSetup()
 {
+  _last_output_wall_time = std::chrono::steady_clock::now();
 }
 
 void
@@ -224,6 +229,9 @@ Output::outputStep(const ExecFlagType & type)
 
   // set current type
   _current_execute_flag = type;
+
+  // store the current wall time
+  _last_output_wall_time = std::chrono::steady_clock::now();
 
   // Call the output method
   if (shouldOutput())
@@ -272,12 +280,25 @@ Output::onInterval()
   if (_sync_times.find(_time) != _sync_times.end())
     output = true;
 
-  // check if enough time has passed between outputs
+  // check if the minimum simulation time has passed between outputs (overrides other checks)
   if (_time > _last_output_time && _last_output_time + _minimum_time_interval > _time + _t_tol)
     return false;
 
-  // Return the output status
-  return output;
+  // Return true if the current step on the current output interval and within the output time range
+  // and within the output step range
+  if (!sync_only && (_time >= _start_time && _time <= _end_time && _t_step >= _start_step &&
+                     _t_step <= _end_step && (_t_step % _interval) == 0))
+    return true;
+
+  // If sync times are not skipped, return true if the current time is a sync_time
+  if (_sync_times.find(_time) != _sync_times.end())
+    return true;
+
+  const auto curr_time = std::chrono::steady_clock::now();
+  const auto minutes_elapsed =
+      std::chrono::duration_cast<std::chrono::minutes>(curr_time - _last_output_wall_time);
+  if (minutes_elapsed >= _wall_time_interval)
+    return true;
 }
 
 Real
